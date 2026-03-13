@@ -16,17 +16,22 @@ function renderRoutes(routes: any[]) {
 function App() {
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    const unsubscribe = listenAuthState((user: any) => {
-      if (user) {
-        dispatch(setUser(user));
-      } else {
-        dispatch(clearUser());
-      }
-    });
+useEffect(() => {
+  const unsubscribe = listenAuthState((user: any) => {
+    if (user) {
+      dispatch(
+        setUser({
+          uid: user.uid,
+          email: user.email,
+        })
+      )
+    } else {
+      dispatch(clearUser())
+    }
+  })
 
-    return () => unsubscribe();
-  }, [dispatch]);
+  return () => unsubscribe()
+}, [dispatch])
 
   return (
     <BrowserRouter>

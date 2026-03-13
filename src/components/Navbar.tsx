@@ -20,6 +20,7 @@ export default function Navbar() {
         <Button color="inherit" onClick={() => navigate("/transactions")}>
   Transactions
 </Button>
+
       </Toolbar>
     </AppBar>
   );

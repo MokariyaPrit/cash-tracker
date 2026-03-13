@@ -1,9 +1,9 @@
 import { auth } from "../firebase/firebaseConfig";
 import {
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
 } from "firebase/auth";
 
 export const signup = (email: string, password: string) => {

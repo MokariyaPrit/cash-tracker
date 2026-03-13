@@ -1,82 +1,91 @@
 import { useEffect, useState } from "react"
-import { TextField, Button, MenuItem } from "@mui/material"
+import { Button } from "@mui/material"
+import { useNavigate } from "react-router-dom"
 
-import { addTransaction } from "../services/transactionService"
+import {
+  getTransactions,
+  deleteTransaction
+} from "../services/transactionService"
+
 import { getPersons } from "../services/personService"
 import { useAppSelector } from "../hooks/reduxHooks"
 
 export default function Transactions() {
-  const user = useAppSelector((state: any) => state.auth.user)
 
+  const navigate = useNavigate()
+
+  const user = useAppSelector((state) => state.auth.user)
+
+  const [transactions, setTransactions] = useState<any[]>([])
   const [persons, setPersons] = useState<any[]>([])
-  const [personId, setPersonId] = useState("")
-  const [amount, setAmount] = useState("")
-  const [type, setType] = useState("expense")
+
+  const loadData = async () => {
+
+    if (!user) return
+
+    const personsData = await getPersons(user.uid)
+    const transactionData = await getTransactions(user.uid)
+
+    setPersons(personsData)
+    setTransactions(transactionData)
+  }
 
   useEffect(() => {
-    loadPersons()
-  }, [])
+    loadData()
+  }, [user])
 
-  const loadPersons = async () => {
-    const data = await getPersons(user.uid)
-    setPersons(data)
+  const handleDelete = async (id: string) => {
+    await deleteTransaction(id)
+    loadData()
   }
 
-  const handleAdd = async () => {
-    await addTransaction({
-      userId: user.uid,
-      personId,
-      amount: Number(amount),
-      type,
-      createdAt: new Date(),
-      date: new Date(),
-    })
-
-    alert("Transaction Added")
-  }
+  const personMap = Object.fromEntries(
+    persons.map((p) => [p.id, p.name])
+  )
 
   return (
     <div>
 
-      <h2>Add Transaction</h2>
+      <h2>Ledger</h2>
 
-      <TextField
-        select
-        label="Person"
-        value={personId}
-        onChange={(e) => setPersonId(e.target.value)}
-        fullWidth
+      <Button
+        variant="contained"
+        onClick={() => navigate("/transactions/add")}
       >
-        {persons.map((p) => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        label="Amount"
-        type="number"
-        fullWidth
-        onChange={(e) => setAmount(e.target.value)}
-      />
-
-      <TextField
-        select
-        label="Type"
-        value={type}
-        fullWidth
-        onChange={(e) => setType(e.target.value)}
-      >
-        <MenuItem value="expense">Expense</MenuItem>
-        <MenuItem value="income">Income</MenuItem>
-        <MenuItem value="lent">Lent</MenuItem>
-        <MenuItem value="borrow">Borrow</MenuItem>
-      </TextField>
-
-      <Button variant="contained" onClick={handleAdd}>
         Add Transaction
       </Button>
+
+      {transactions.map((t) => (
+        <div
+          key={t.id}
+          style={{
+            border: "1px solid #ccc",
+            padding: "10px",
+            marginTop: "10px"
+          }}
+        >
+
+          <strong>{t.type.toUpperCase()}</strong>
+
+          <div>Person: {personMap[t.personId]}</div>
+
+          <div>Amount: ₹{t.amount}</div>
+
+          <Button
+            onClick={() => navigate(`/transactions/edit/${t.id}`)}
+          >
+            Edit
+          </Button>
+
+          <Button
+            color="error"
+            onClick={() => handleDelete(t.id)}
+          >
+            Delete
+          </Button>
+
+        </div>
+      ))}
 
     </div>
   )

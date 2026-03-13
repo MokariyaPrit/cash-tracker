@@ -8,6 +8,7 @@ import Signup from "../pages/Signup";
 import Dashboard from "../pages/Dashboard";
 import Persons from "../pages/Persons";
 import Transactions from "../pages/Transactions";
+import AddTransaction from "../pages/AddTransaction";
 
 const routes: RouteObject[] = [
   {
@@ -26,10 +27,18 @@ const routes: RouteObject[] = [
         path: "persons",
         element: <Persons />,
       },
-      {
-        path: "transactions",
-        element: <Transactions />,
-      },
+  {
+  path: "transactions",
+  element: <Transactions />,
+},
+{
+  path: "transactions/add",
+  element: <AddTransaction />,
+},
+{
+  path: "transactions/edit/:id",
+  element: <AddTransaction />,
+}
     ],
   },
   {
