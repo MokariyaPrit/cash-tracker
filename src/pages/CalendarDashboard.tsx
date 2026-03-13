@@ -87,7 +87,17 @@ export default function CalendarDashboard() {
     );
   };
 
-  const summary = transactions.reduce(
+  const monthTransactions = transactions.filter((t) => {
+  const tDate = t.date?.seconds
+    ? new Date(t.date.seconds * 1000)
+    : new Date(t.date);
+
+  return (
+    tDate.getMonth() === date.getMonth() &&
+    tDate.getFullYear() === date.getFullYear()
+  );
+});
+const summary = monthTransactions.reduce(
   (acc, t) => {
 
     if (t.type === "income") acc.income += t.amount;
@@ -192,10 +202,13 @@ const balance =
 
 </Grid>
       <Calendar
-        value={date}
-        onChange={(value) => setDate(value as Date)}
-        tileContent={tileContent}
-      />
+  value={date}
+  onChange={(value) => setDate(value as Date)}
+  onActiveStartDateChange={({ activeStartDate }) => {
+    if (activeStartDate) setDate(activeStartDate);
+  }}
+  tileContent={tileContent}
+/>
 
       <h3 style={{ marginTop: 20 }}>
         Transactions on {date.toDateString()}
