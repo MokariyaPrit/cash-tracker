@@ -10,6 +10,7 @@ import Persons from "../pages/Persons";
 import Transactions from "../pages/Transactions";
 import AddTransaction from "../pages/AddTransaction";
 import CalendarDashboard from "../pages/CalendarDashboard";
+import PersonLedger from "../pages/PersonLedger";
 
 const routes: RouteObject[] = [
   {
@@ -24,10 +25,14 @@ const routes: RouteObject[] = [
         index: true,
         element: <Dashboard />,
       },
-      {
-        path: "persons",
-        element: <Persons />,
-      },
+     {
+  path: "persons",
+  element: <Persons />,
+},
+{
+  path: "persons/ledger/:id",
+  element: <PersonLedger />,
+},
   {
   path: "transactions",
   element: <Transactions />,

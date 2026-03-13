@@ -1,24 +1,40 @@
 import { useEffect, useState } from "react";
 import { addPerson, getPersons, deletePerson } from "../services/personService";
 import { useAppSelector } from "../hooks/reduxHooks";
-import { TextField, Button, List, ListItem } from "@mui/material";
+import {
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Box,
+  Typography
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 export default function Persons() {
+
   const [name, setName] = useState("");
   const [persons, setPersons] = useState<any[]>([]);
 
   const user = useAppSelector((state: any) => state.auth.user);
 
+  const navigate = useNavigate();
+
   const loadPersons = async () => {
+    if (!user) return;
     const data = await getPersons(user.uid);
     setPersons(data);
   };
 
   useEffect(() => {
-    if (user) loadPersons();
+    loadPersons();
   }, [user]);
 
   const handleAdd = async () => {
+
+    if (!name.trim()) return;
+
     await addPerson({
       name,
       userId: user.uid,
@@ -35,25 +51,68 @@ export default function Persons() {
   };
 
   return (
-    <div>
-      <h2>Persons</h2>
+    <Box>
 
-      <TextField
-        label="Person Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+      <Typography variant="h4" sx={{ mb: 2 }}>
+        Persons
+      </Typography>
 
-      <Button onClick={handleAdd}>Add</Button>
+      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+        <TextField
+          label="Person Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <Button
+          variant="contained"
+          onClick={handleAdd}
+        >
+          Add
+        </Button>
+      </Box>
 
       <List>
+
         {persons.map((p) => (
-          <ListItem key={p.id}>
-            {p.name}
-            <Button onClick={() => handleDelete(p.id)}>Delete</Button>
+
+          <ListItem
+            key={p.id}
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              border: "1px solid #eee",
+              mb: 1
+            }}
+          >
+
+            <ListItemText primary={p.name} />
+
+            <Box>
+
+             <Button
+  size="small"
+  onClick={() => navigate(`/persons/ledger/${p.id}`)}
+>
+  Ledger
+</Button>
+
+              <Button
+                size="small"
+                color="error"
+                onClick={() => handleDelete(p.id)}
+              >
+                Delete
+              </Button>
+
+            </Box>
+
           </ListItem>
+
         ))}
+
       </List>
-    </div>
+
+    </Box>
   );
 }
