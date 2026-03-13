@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { signup } from "../services/authService";
 import { TextField, Button, Container, Typography } from "@mui/material";
+import { createUserProfile } from "../services/userService";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSignup = async () => {
-    try {
-      await signup(email, password);
-      alert("Signup successful");
-    } catch (error: any) {
-      alert(error.message);
-    }
-  };
+const handleSignup = async () => {
+  try {
+    const res = await signup(email, password);
+
+    await createUserProfile(res.user);
+
+    alert("Signup successful");
+  } catch (error: any) {
+    alert(error.message);
+  }
+};
 
   return (
     <Container maxWidth="sm">

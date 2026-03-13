@@ -3,10 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAppDispatch } from "./hooks/reduxHooks";
 import { setUser, clearUser } from "./store/authSlice";
 import { listenAuthState } from "./services/authService";
-
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ProtectedRoute from "./components/ProtectedRoute";
+import routes from "./routes/routes";
 
 function App() {
   const dispatch = useAppDispatch();
@@ -26,17 +23,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <div>Dashboard</div>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        {routes.map((route, index) => (
+          <Route key={index} path={route.path} element={route.element} />
+        ))}
       </Routes>
     </BrowserRouter>
   );
