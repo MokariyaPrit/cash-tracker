@@ -5,6 +5,14 @@ import { setUser, clearUser } from "./store/authSlice";
 import { listenAuthState } from "./services/authService";
 import routes from "./routes/routes";
 
+function renderRoutes(routes: any[]) {
+  return routes.map((route, index) => (
+    <Route key={index} path={route.path} element={route.element}>
+      {route.children && renderRoutes(route.children)}
+    </Route>
+  ));
+}
+
 function App() {
   const dispatch = useAppDispatch();
 
@@ -22,11 +30,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {routes.map((route, index) => (
-          <Route key={index} path={route.path} element={route.element} />
-        ))}
-      </Routes>
+      <Routes>{renderRoutes(routes)}</Routes>
     </BrowserRouter>
   );
 }

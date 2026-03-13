@@ -1,24 +1,36 @@
-import Login from "../pages/Login";
-import Signup from "../pages/Signup";
-import Persons from "../pages/Persons";
+import type { RouteObject } from "react-router-dom";
+
+import Layout from "../components/Layout";
 import ProtectedRoute from "../components/ProtectedRoute";
 
-const routes = [
+import Login from "../pages/Login";
+import Signup from "../pages/Signup";
+import Dashboard from "../pages/Dashboard";
+import Persons from "../pages/Persons";
+import Transactions from "../pages/Transactions";
+
+const routes: RouteObject[] = [
   {
     path: "/",
     element: (
       <ProtectedRoute>
-        <div>Dashboard</div>
+        <Layout />
       </ProtectedRoute>
     ),
-  },
-  {
-    path: "/persons",
-    element: (
-      <ProtectedRoute>
-        <Persons />
-      </ProtectedRoute>
-    ),
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: "persons",
+        element: <Persons />,
+      },
+      {
+        path: "transactions",
+        element: <Transactions />,
+      },
+    ],
   },
   {
     path: "/login",
