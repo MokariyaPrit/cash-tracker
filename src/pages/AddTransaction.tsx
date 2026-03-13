@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
-import { TextField, MenuItem, Button } from "@mui/material"
+import { TextField, MenuItem, Button, Checkbox, FormControlLabel } from "@mui/material"
+import { DatePicker } from "@mui/x-date-pickers/DatePicker"
+import dayjs from "dayjs"
 
 import {
   addTransaction,
@@ -10,7 +12,6 @@ import { getPersons } from "../services/personService"
 import { useAppSelector } from "../hooks/reduxHooks"
 
 import { useNavigate, useParams } from "react-router-dom"
-
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "../firebase/firebaseConfig"
 
@@ -19,13 +20,14 @@ export default function AddTransaction() {
   const navigate = useNavigate()
   const { id } = useParams()
 
-//   const user = useAppSelector((state: any) => state.auth.user)
-const user = useAppSelector((state) => state.auth.user)
+  const user = useAppSelector((state) => state.auth.user)
 
   const [persons, setPersons] = useState<any[]>([])
   const [personId, setPersonId] = useState("")
   const [amount, setAmount] = useState("")
   const [type, setType] = useState("expense")
+  const [date, setDate] = useState(dayjs())
+  const [completed, setCompleted] = useState(true)
 
   useEffect(() => {
     if (user) {
@@ -34,14 +36,14 @@ const user = useAppSelector((state) => state.auth.user)
     }
   }, [user])
 
-   if (!user) return
-   
   const loadPersons = async () => {
+    if (!user) return
     const data = await getPersons(user.uid)
     setPersons(data)
   }
 
   const loadTransaction = async () => {
+
     const ref = doc(db, "transactions", id!)
     const snap = await getDoc(ref)
 
@@ -51,17 +53,22 @@ const user = useAppSelector((state) => state.auth.user)
       setPersonId(data.personId)
       setAmount(data.amount)
       setType(data.type)
+      setCompleted(data.status === "completed")
+      setDate(dayjs(data.date.toDate()))
     }
   }
 
   const handleSave = async () => {
+
+    if (!user) return
 
     const data = {
       userId: user.uid,
       personId,
       amount: Number(amount),
       type,
-      date: new Date(),
+      status: completed ? "completed" : "pending",
+      date: date.toDate(),
     }
 
     if (id) {
@@ -115,6 +122,22 @@ const user = useAppSelector((state) => state.auth.user)
         <MenuItem value="lent">Lent</MenuItem>
         <MenuItem value="borrow">Borrow</MenuItem>
       </TextField>
+
+      <DatePicker
+        label="Transaction Date"
+        value={date}
+        onChange={(newValue) => setDate(newValue!)}
+      />
+
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={completed}
+            onChange={(e) => setCompleted(e.target.checked)}
+          />
+        }
+        label="Mark as Completed"
+      />
 
       <Button
         variant="contained"
