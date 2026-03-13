@@ -12,6 +12,7 @@ import { getPersons } from "../services/personService"
 import { useAppSelector } from "../hooks/reduxHooks"
 
 import { useNavigate, useParams } from "react-router-dom"
+
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "../firebase/firebaseConfig"
 
@@ -30,14 +31,19 @@ export default function AddTransaction() {
   const [completed, setCompleted] = useState(true)
 
   useEffect(() => {
-    if (user) {
-      loadPersons()
-      if (id) loadTransaction()
-    }
-  }, [user])
-
-  const loadPersons = async () => {
     if (!user) return
+
+    loadPersons()
+
+    if (id) {
+      loadTransaction()
+    }
+
+  }, [user, id])
+
+  if(!user) return null
+  
+  const loadPersons = async () => {
     const data = await getPersons(user.uid)
     setPersons(data)
   }
@@ -48,13 +54,18 @@ export default function AddTransaction() {
     const snap = await getDoc(ref)
 
     if (snap.exists()) {
+
       const data: any = snap.data()
 
       setPersonId(data.personId)
       setAmount(data.amount)
       setType(data.type)
       setCompleted(data.status === "completed")
-      setDate(dayjs(data.date.toDate()))
+
+      if (data.date?.seconds) {
+        setDate(dayjs(new Date(data.date.seconds * 1000)))
+      }
+
     }
   }
 
@@ -62,7 +73,7 @@ export default function AddTransaction() {
 
     if (!user) return
 
-    const data = {
+    const payload = {
       userId: user.uid,
       personId,
       amount: Number(amount),
@@ -72,12 +83,16 @@ export default function AddTransaction() {
     }
 
     if (id) {
-      await updateTransaction(id, data)
+
+      await updateTransaction(id, payload)
+
     } else {
+
       await addTransaction({
-        ...data,
-        createdAt: new Date()
+        ...payload,
+        createdAt: new Date(),
       })
+
     }
 
     navigate("/transactions")
@@ -141,6 +156,7 @@ export default function AddTransaction() {
 
       <Button
         variant="contained"
+        sx={{ mt: 2 }}
         onClick={handleSave}
       >
         Save

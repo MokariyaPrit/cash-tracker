@@ -21,6 +21,10 @@ export default function Navbar() {
   Transactions
 </Button>
 
+<Button onClick={() => navigate("/calendar")}>
+  Calendar
+</Button>
+
       </Toolbar>
     </AppBar>
   );

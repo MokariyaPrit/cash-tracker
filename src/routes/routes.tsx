@@ -9,6 +9,7 @@ import Dashboard from "../pages/Dashboard";
 import Persons from "../pages/Persons";
 import Transactions from "../pages/Transactions";
 import AddTransaction from "../pages/AddTransaction";
+import CalendarDashboard from "../pages/CalendarDashboard";
 
 const routes: RouteObject[] = [
   {
@@ -38,6 +39,10 @@ const routes: RouteObject[] = [
 {
   path: "transactions/edit/:id",
   element: <AddTransaction />,
+},
+{
+  path: "calendar",
+  element: <CalendarDashboard />
 }
     ],
   },
