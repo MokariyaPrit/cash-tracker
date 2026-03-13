@@ -12,20 +12,29 @@ import {
   type GridColDef
 } from "@mui/x-data-grid";
 import { useParams } from "react-router-dom";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 export default function PersonLedger() {
-
   const user = useAppSelector((state) => state.auth.user);
   const [persons, setPersons] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const { id } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
-const handleDelete = async (id: string) => {
-  await deleteTransaction(id);
-  loadData();
-};
+  const handleDelete = async (transactionId: string) => {
+    const ok = await confirm({
+      title: "Delete transaction?",
+      message: "This transaction will be removed. This cannot be undone.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      confirmColor: "error",
+    });
+    if (!ok) return;
+    await deleteTransaction(transactionId);
+    loadData();
+  };
   useEffect(() => {
     loadData();
   }, [user]);

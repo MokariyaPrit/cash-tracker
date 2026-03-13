@@ -4,7 +4,7 @@ import { useAppDispatch } from "./hooks/reduxHooks";
 import { setUser, clearUser } from "./store/authSlice";
 import { listenAuthState } from "./services/authService";
 import routes from "./routes/routes";
-
+import './App.css'
 function renderRoutes(routes: any[]) {
   return routes.map((route, index) => (
     <Route key={index} path={route.path} element={route.element}>
