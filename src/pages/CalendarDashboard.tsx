@@ -251,7 +251,7 @@ export default function CalendarDashboard() {
           sx={{ fontSize: 32, color: "primary.main" }}
         />
         <Typography variant="h4" fontWeight={700} color="text.primary">
-          Calendar
+          DashBoard
         </Typography>
       </Stack>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

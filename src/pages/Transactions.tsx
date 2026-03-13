@@ -27,8 +27,6 @@ import {
 } from "@mui/x-data-grid";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 
 function capitalize(s: string) {

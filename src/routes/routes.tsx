@@ -2,10 +2,8 @@ import type { RouteObject } from "react-router-dom";
 
 import Layout from "../components/Layout";
 import ProtectedRoute from "../components/ProtectedRoute";
-
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
-import Dashboard from "../pages/Dashboard";
 import Persons from "../pages/Persons";
 import Transactions from "../pages/Transactions";
 import AddTransaction from "../pages/AddTransaction";
@@ -21,10 +19,6 @@ const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
-      {
-        index: true,
-        element: <Dashboard />,
-      },
      {
   path: "persons",
   element: <Persons />,

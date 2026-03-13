@@ -29,7 +29,7 @@ export default function Login() {
 
 useEffect(() => {
   if (user) {
-    navigate("/");
+    navigate("/Calendar");
   }
 }, [user]);
 

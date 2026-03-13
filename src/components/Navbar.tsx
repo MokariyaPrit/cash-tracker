@@ -5,17 +5,17 @@ import { clearUser } from "../store/authSlice";
 import { logout } from "../services/authService";
 
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+// import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 
 const navItems = [
-  { path: "/", label: "Dashboard", icon: <DashboardRoundedIcon fontSize="small" /> },
+  { path: "/calendar", label: "Dashboard", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
   { path: "/persons", label: "Persons", icon: <PeopleRoundedIcon fontSize="small" /> },
   { path: "/transactions", label: "Transactions", icon: <ReceiptLongRoundedIcon fontSize="small" /> },
-  { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
+//   { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
 ];
 
 export default function Navbar() {
