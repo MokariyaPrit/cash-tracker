@@ -41,6 +41,7 @@ import { useAlert } from "../contexts/AlertContext";
 
 const typeOptions = [
   { value: "expense", label: "Expense" },
+  { value: "salary", label: "Salary" },
   { value: "income", label: "Income" },
   { value: "advance", label: "Advance" },
 ];
@@ -60,7 +61,7 @@ const ordinal = (n: number) => {
 const emptyForm = {
   personId: "",
   amount: "",
-  type: "expense",
+  type: "salary",
   dayOfMonth: 1,
   description: "",
 };
@@ -377,6 +378,7 @@ export default function RecurringTransactions() {
                       color={
                         t.type === "income" ? "success"
                         : t.type === "expense" ? "error"
+                        : t.type === "salary" ? "error"
                         : "info"
                       }
                       sx={{ fontWeight: 600, fontSize: 11 }}
@@ -686,6 +688,7 @@ export default function RecurringTransactions() {
                           color={
                             t.type === "income" ? "success"
                             : t.type === "expense" ? "error"
+                            : t.type === "salary" ? "error"
                             : "info"
                           }
                           sx={{ fontSize: 10, height: 20 }}

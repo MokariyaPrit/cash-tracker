@@ -135,6 +135,7 @@ export default function Transactions() {
     .map((t) => {
       if (t.type === "income") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
+      if (t.type === "salary") balance -= t.amount;
       if (t.type === "advance") balance += t.amount;
       if (t.type === "settlement") balance = 0;
       return {
@@ -162,10 +163,11 @@ export default function Transactions() {
     (acc, t) => {
       if (t.type === "income") acc.income += t.amount;
       if (t.type === "expense") acc.expense += t.amount;
+      if (t.type === "salary") acc.salary += t.amount;
       if (t.type === "advance") acc.advance += t.amount;
       return acc;
     },
-    { income: 0, expense: 0, advance: 0 }
+    { income: 0, expense: 0, advance: 0 , salary:0 }
   );
 
   const columns: GridColDef[] = [
@@ -355,7 +357,7 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, and advanceed amounts.
+            View and manage all your income, expenses, salary and advanceed amounts.
           </Typography>
         </Box>
 
@@ -448,6 +450,13 @@ export default function Transactions() {
           />
           <Chip
             label={`Expense ₹${monthSummary.expense.toLocaleString()}`}
+            size="small"
+            color="error"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+           <Chip
+            label={`Salary ₹${monthSummary.salary.toLocaleString()}`}
             size="small"
             color="error"
             variant="outlined"

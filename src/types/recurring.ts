@@ -3,7 +3,7 @@ export interface RecurringTemplate {
   userId: string
   personId: string
   amount: number
-  type: "expense" | "income" | "advance"
+  type: "expense" | "income" | "advance" | "salary"
   dayOfMonth: number        // 1–28
   description?: string
   createdAt: any

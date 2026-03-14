@@ -104,6 +104,7 @@ export default function CalendarDashboard() {
     dailyTransactions.forEach((t) => {
       if (t.type === "income" || t.type === "advance") total += t.amount;
       if (t.type === "expense") total -= t.amount;
+      if (t.type === "salary") total -= t.amount;
       if (t.type === "settlement") total -= t.amount
     });
 
@@ -138,6 +139,7 @@ export default function CalendarDashboard() {
   (acc, t) => {
     if (t.type === "income") acc.income += t.amount;
     if (t.type === "expense") acc.expense += t.amount;
+    if (t.type === "salary") acc.salary += t.amount;
     if (t.type === "advance") acc.advance += t.amount;
     if (t.type === "settlement") acc.settlement += t.amount; 
     if (t.status === "pending") acc.pending += t.amount;
@@ -147,6 +149,7 @@ export default function CalendarDashboard() {
   {
     income: 0,
     expense: 0,
+    salary: 0,
     advance: 0,
     settlement: 0,  
     pending: 0,
@@ -155,7 +158,7 @@ export default function CalendarDashboard() {
 );
 
   const balance =
-    summary.income + summary.advance - summary.expense + summary.settlement;
+    summary.income + summary.advance - summary.expense + summary.settlement - summary.salary ;
 
   const summaryCards = [
     {
@@ -167,6 +170,12 @@ export default function CalendarDashboard() {
     {
       label: "Expense",
       value: summary.expense,
+      color: "error.main" as const,
+      icon: <TrendingDownRoundedIcon fontSize="small" />,
+    },
+    {
+      label: "Salary",
+      value: summary.salary,
       color: "error.main" as const,
       icon: <TrendingDownRoundedIcon fontSize="small" />,
     },

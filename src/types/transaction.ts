@@ -2,7 +2,7 @@ export interface Transaction {
   id?: string
   userId: string
   personId: string
-  type: "expense" | "income" | "advance" | "settlement"
+  type: "expense" | "income" | "advance" | "settlement" | "salary"
   amount: number
   description?: string
   date: any

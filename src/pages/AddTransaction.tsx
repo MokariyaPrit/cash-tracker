@@ -37,6 +37,7 @@ import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlin
 
 const typeOptions = [
   { value: "expense", label: "Expense" },
+  // { value: "salary", label: "Salary" },
   { value: "income", label: "Income" },
   { value: "advance", label: "Advance" },
 ];

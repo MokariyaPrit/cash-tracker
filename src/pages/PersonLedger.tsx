@@ -139,6 +139,7 @@ export default function PersonLedger() {
       if (t.type === "income") balance += t.amount;
       if (t.type === "advance") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
+      if (t.type === "salary") balance -= t.amount;
       if (t.type === "settlement") balance += t.amount
     });
     return { id: person.id, name: person.name, balance };
@@ -190,8 +191,8 @@ export default function PersonLedger() {
       if (t.type === "income") balance += t.amount;
       if (t.type === "advance") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
-      // settlement resets balance to 0 — don't add/subtract, just reset
-       if (t.type === "settlement") balance = 0;
+      if (t.type === "salary") balance -= t.amount;
+       if (t.type === "settlement") balance += t.amount;
       return {
         id: t.id,
         date: t.date?.seconds
