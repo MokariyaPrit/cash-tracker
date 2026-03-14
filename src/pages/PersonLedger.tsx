@@ -11,6 +11,7 @@ import {
   DialogActions,
   Stack,
   TextField,
+  MenuItem,
   useTheme,
   alpha,
   CircularProgress,
@@ -21,35 +22,89 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-import { getTransactions } from "../services/transactionService";
 import { getPersons } from "../services/personService";
 import {
+  getTransactions,
+  getTransactionsByPerson,
   addTransaction,
   bulkMarkCompleted,
+  deleteTransaction,
 } from "../services/transactionService";
 import { useAppSelector } from "../hooks/reduxHooks";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteTransaction } from "../services/transactionService";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { useConfirm } from "../contexts/ConfirmContext";
 import { useAlert } from "../contexts/AlertContext";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { type Dayjs } from "dayjs";
 
+const monthNames = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+
 export default function PersonLedger() {
   const user = useAppSelector((state) => state.auth.user);
   const theme = useTheme();
+  const { id } = useParams(); // undefined = list view, string = detail view
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
+
   const [persons, setPersons] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]); // all transactions for balance list
+  const [personTransactions, setPersonTransactions] = useState<any[]>([]); // selected person only
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [settleOpen, setSettleOpen] = useState(false);
   const [settleDescription, setSettleDescription] = useState("");
   const [settleDate, setSettleDate] = useState<Dayjs>(dayjs());
   const [settling, setSettling] = useState(false);
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const confirm = useConfirm();
-  const showAlert = useAlert();
+
+  // ── Month filter for ledger ────────────────────────────────────────
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [ledgerMonth, setLedgerMonth] = useState(new Date().getMonth());
+  const [ledgerYear, setLedgerYear] = useState(new Date().getFullYear());
+
+  const yearOptions = Array.from(
+    { length: 5 },
+    (_, i) => new Date().getFullYear() - 2 + i
+  );
+
+  // ── Load persons + all transactions (for balance list) ─────────────
+  const loadData = async () => {
+    if (!user) return;
+    const [t, p] = await Promise.all([
+      getTransactions(user.uid),
+      getPersons(user.uid),
+    ]);
+    setTransactions(t);
+    setPersons(p);
+    if (id) {
+      const person = p.find((x: any) => x.id === id);
+      setSelectedPerson(person ?? null);
+    }
+  };
+
+  // ── Load transactions for selected person (month or all) ───────────
+  const loadPersonTransactions = async (personId: string) => {
+    if (!user) return;
+    const data = showAllHistory
+      ? await getTransactionsByPerson(user.uid, personId)
+      : await getTransactionsByPerson(user.uid, personId, ledgerYear, ledgerMonth);
+    setPersonTransactions(data);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user, id]); // 👈 re-run when id changes (navigating between persons)
+
+  useEffect(() => {
+    if (selectedPerson) {
+      loadPersonTransactions(selectedPerson.id);
+    } else {
+      setPersonTransactions([]);
+    }
+  }, [selectedPerson, showAllHistory, ledgerMonth, ledgerYear]);
 
   const handleDelete = async (transactionId: string) => {
     const ok = await confirm({
@@ -61,37 +116,19 @@ export default function PersonLedger() {
     });
     if (!ok) return;
     await deleteTransaction(transactionId);
-    loadData();
+    if (selectedPerson) loadPersonTransactions(selectedPerson.id);
   };
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
-  const loadData = async () => {
-    if (!user) return;
-    const t = await getTransactions(user.uid);
-    const p = await getPersons(user.uid);
-    setTransactions(t);
-    setPersons(p);
-    if (id) {
-      const person = p.find((x: any) => x.id === id);
-      setSelectedPerson(person);
-    }
-  };
-
-  // ── Settle Up handler ──────────────────────────────────────────────
+  // ── Settle Up ──────────────────────────────────────────────────────
   const handleSettleUp = async () => {
     if (!user || !selectedPerson) return;
     setSettling(true);
     try {
       const settledAt = settleDate.toDate();
-
-      // 1. Add a settlement transaction
       await addTransaction({
         userId: user.uid,
         personId: selectedPerson.id,
-        type: "settlement",          // settlement = money received / cleared
+        type: "settlement",
         amount: Math.abs(currentBalance),
         description: settleDescription.trim()
           ? settleDescription.trim()
@@ -100,14 +137,11 @@ export default function PersonLedger() {
         date: settledAt,
         completedDate: settledAt,
         createdAt: new Date(),
-        isSettlement: true,       // flag so you can identify it later
+        isSettlement: true,
       });
 
-      // 2. Mark all pending transactions for this person as completed
-      const pendingIds = transactions
-        .filter(
-          (t) => t.personId === selectedPerson.id && t.status === "pending"
-        )
+      const pendingIds = personTransactions
+        .filter((t) => t.status === "pending")
         .map((t) => t.id);
 
       if (pendingIds.length > 0) {
@@ -121,26 +155,24 @@ export default function PersonLedger() {
       setSettleOpen(false);
       setSettleDescription("");
       setSettleDate(dayjs());
-      await loadData();
-    } catch (err) {
+      await loadPersonTransactions(selectedPerson.id);
+    } catch {
       showAlert("Settlement failed. Please try again.", "error");
     } finally {
       setSettling(false);
     }
   };
 
-  // ── Person balance list ────────────────────────────────────────────
+  // ── Person balance list (uses all transactions) ────────────────────
   const personBalances = persons.map((person) => {
-    const personTransactions = transactions.filter(
-      (t) => t.personId === person.id
-    );
+    const pt = transactions.filter((t) => t.personId === person.id);
     let balance = 0;
-    personTransactions.forEach((t) => {
-      if (t.type === "income") balance += t.amount;
-      if (t.type === "advance") balance += t.amount;
-      if (t.type === "expense") balance -= t.amount;
-      if (t.type === "salary") balance -= t.amount;
-      if (t.type === "settlement") balance += t.amount
+    pt.forEach((t) => {
+      if (t.type === "income")     balance += t.amount;
+      if (t.type === "advance")    balance += t.amount;
+      if (t.type === "expense")    balance -= t.amount;
+      if (t.type === "salary")     balance -= t.amount;
+      if (t.type === "settlement") balance += t.amount;
     });
     return { id: person.id, name: person.name, balance };
   });
@@ -163,36 +195,22 @@ export default function PersonLedger() {
       flex: 1,
       sortable: false,
       renderCell: (params) => (
-        <Button
-          onClick={() =>
-            setSelectedPerson(persons.find((p) => p.id === params.row.id))
-          }
-        >
+        <Button onClick={() => navigate(`/persons/ledger/${params.row.id}`)}>
           View Ledger
         </Button>
       ),
     },
   ];
 
-  // ── Person transaction history ─────────────────────────────────────
+  // ── Person transaction rows (uses personTransactions) ─────────────
   let balance = 0;
-  const personRows = transactions
-    .filter((t) => t.personId === selectedPerson?.id)
-    .sort((a, b) => {
-      const aDate = a.date?.seconds
-        ? new Date(a.date.seconds * 1000)
-        : new Date(a.date);
-      const bDate = b.date?.seconds
-        ? new Date(b.date.seconds * 1000)
-        : new Date(b.date);
-      return aDate.getTime() - bDate.getTime();
-    })
+  const personRows = personTransactions
     .map((t) => {
-      if (t.type === "income") balance += t.amount;
-      if (t.type === "advance") balance += t.amount;
-      if (t.type === "expense") balance -= t.amount;
-      if (t.type === "salary") balance -= t.amount;
-       if (t.type === "settlement") balance += t.amount;
+      if (t.type === "income")     balance += t.amount;
+      if (t.type === "advance")    balance += t.amount;
+      if (t.type === "expense")    balance -= t.amount;
+      if (t.type === "salary")     balance -= t.amount;
+      if (t.type === "settlement") balance += t.amount;
       return {
         id: t.id,
         date: t.date?.seconds
@@ -218,7 +236,7 @@ export default function PersonLedger() {
       flex: 1,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          {params.row.isSettlement && (
+          {params.row.isSettlement ? (
             <Chip
               label="Settlement"
               size="small"
@@ -226,8 +244,7 @@ export default function PersonLedger() {
               variant="outlined"
               sx={{ fontSize: 10, height: 20 }}
             />
-          )}
-          {!params.row.isSettlement && (
+          ) : (
             <Typography variant="body2">
               {params.value.charAt(0).toUpperCase() + params.value.slice(1)}
             </Typography>
@@ -314,15 +331,14 @@ export default function PersonLedger() {
   const currentBalance =
     personRows.length > 0 ? personRows[personRows.length - 1].balance : 0;
 
-  const pendingCount = transactions.filter(
-    (t) => t.personId === selectedPerson?.id && t.status === "pending"
+  const pendingCount = personTransactions.filter(
+    (t) => t.status === "pending"
   ).length;
 
-  // ── Render ─────────────────────────────────────────────────────────
   return (
     <Box sx={{ p: 3 }}>
-      {/* Person Balances List */}
-      {!selectedPerson && (
+      {/* ── Person Balances List ── */}
+      {!id && (
         <>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h5" fontWeight={700}>
@@ -341,8 +357,8 @@ export default function PersonLedger() {
         </>
       )}
 
-      {/* Selected Person Ledger */}
-      {selectedPerson && (
+      {/* ── Selected Person Ledger ── */}
+      {id && selectedPerson && (
         <>
           {/* Header */}
           <Box
@@ -356,11 +372,10 @@ export default function PersonLedger() {
               borderColor: "divider",
             }}
           >
-            {/* Left: Back + Name */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Button
                 startIcon={<ArrowBackIcon />}
-                onClick={() => setSelectedPerson(null)}
+                onClick={() => navigate("/persons/ledger")} // 👈 navigate instead of setState
                 sx={{
                   color: "text.secondary",
                   fontWeight: 500,
@@ -383,22 +398,17 @@ export default function PersonLedger() {
               </Box>
             </Box>
 
-            {/* Right: Balance + Settle Up + Add */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {/* Current Balance box */}
               {personRows.length > 0 && (
                 <Box
                   sx={{
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2,
+                    px: 2, py: 1, borderRadius: 2,
                     border: "1px solid",
                     borderColor: currentBalance >= 0 ? "success.light" : "error.light",
                     backgroundColor: currentBalance >= 0
                       ? "rgba(46,125,50,0.06)"
                       : "rgba(211,47,47,0.06)",
-                    minWidth: 120,
-                    textAlign: "center",
+                    minWidth: 120, textAlign: "center",
                   }}
                 >
                   <Typography variant="caption" color="text.secondary" display="block">
@@ -414,7 +424,6 @@ export default function PersonLedger() {
                 </Box>
               )}
 
-              {/* Settle Up — only show when there's a non-zero balance */}
               {currentBalance !== 0 && (
                 <Button
                   variant="outlined"
@@ -422,11 +431,8 @@ export default function PersonLedger() {
                   startIcon={<AccountBalanceWalletRoundedIcon />}
                   onClick={() => setSettleOpen(true)}
                   sx={{
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    px: 2.5,
-                    borderColor: "success.main",
-                    color: "success.main",
+                    borderRadius: 2, fontWeight: 600, px: 2.5,
+                    borderColor: "success.main", color: "success.main",
                     "&:hover": {
                       backgroundColor: alpha(theme.palette.success.main, 0.06),
                       borderColor: "success.dark",
@@ -440,9 +446,7 @@ export default function PersonLedger() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() =>
-                  navigate(`/transactions/add?personId=${selectedPerson.id}`)
-                }
+                onClick={() => navigate(`/transactions/add?personId=${selectedPerson.id}`)}
                 sx={{ borderRadius: 2, px: 2.5, fontWeight: 600 }}
               >
                 Add Transaction
@@ -450,8 +454,8 @@ export default function PersonLedger() {
             </Box>
           </Box>
 
-          {/* Transaction count + pending badge */}
-          <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+          {/* ── Month filter row ── */}
+          <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Chip
               label={`${personRows.length} transaction${personRows.length !== 1 ? "s" : ""}`}
               size="small"
@@ -467,6 +471,49 @@ export default function PersonLedger() {
                 sx={{ fontWeight: 500 }}
               />
             )}
+
+            <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
+              {/* Toggle all history */}
+              <Button
+                size="small"
+                variant={showAllHistory ? "contained" : "outlined"}
+                onClick={() => setShowAllHistory((v) => !v)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                {showAllHistory ? "All History" : "This Month"}
+              </Button>
+
+              {/* Month/Year selectors */}
+              {!showAllHistory && (
+                <>
+                  <TextField
+                    select
+                    size="small"
+                    value={ledgerMonth}
+                    onChange={(e) => setLedgerMonth(Number(e.target.value))}
+                    sx={{ minWidth: 120, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                    SelectProps={{ MenuProps: { sx: { zIndex: 9999 } } }}
+                  >
+                    {monthNames.map((m, i) => (
+                      <MenuItem key={i} value={i}>{m}</MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    size="small"
+                    value={ledgerYear}
+                    onChange={(e) => setLedgerYear(Number(e.target.value))}
+                    sx={{ minWidth: 90, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+                    SelectProps={{ MenuProps: { sx: { zIndex: 9999 } } }}
+                  >
+                    {yearOptions.map((y) => (
+                      <MenuItem key={y} value={y}>{y}</MenuItem>
+                    ))}
+                  </TextField>
+                </>
+              )}
+            </Box>
           </Box>
 
           <DataGrid
@@ -486,22 +533,20 @@ export default function PersonLedger() {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
+        <DialogTitle
+          sx={{ pb: 1, fontWeight: 700, fontSize: "1.25rem" }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CheckCircleOutlineRoundedIcon color="success" />
-            <Typography variant="h6" fontWeight={700}>
-              Settle Up with {selectedPerson?.name}
-            </Typography>
+            Settle Up with {selectedPerson?.name}
           </Box>
         </DialogTitle>
 
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
-            {/* Summary box */}
             <Box
               sx={{
-                p: 2,
-                borderRadius: 2,
+                p: 2, borderRadius: 2,
                 backgroundColor: alpha(theme.palette.success.main, 0.06),
                 border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
               }}
@@ -519,7 +564,6 @@ export default function PersonLedger() {
               )}
             </Box>
 
-            {/* Settlement date */}
             <DatePicker
               label="Settlement Date"
               value={settleDate}
@@ -530,14 +574,11 @@ export default function PersonLedger() {
                   size: "small",
                   fullWidth: true,
                   helperText: "Date the payment was made",
-                  sx: {
-                    "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                  },
+                  sx: { "& .MuiOutlinedInput-root": { borderRadius: 2 } },
                 },
               }}
             />
 
-            {/* Optional description */}
             <TextField
               label="Note (optional)"
               placeholder="e.g. Paid via UPI, Cash payment…"
@@ -568,11 +609,9 @@ export default function PersonLedger() {
             onClick={handleSettleUp}
             disabled={settling}
             startIcon={
-              settling ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <CheckCircleOutlineRoundedIcon />
-              )
+              settling
+                ? <CircularProgress size={16} color="inherit" />
+                : <CheckCircleOutlineRoundedIcon />
             }
             sx={{ borderRadius: 2, minWidth: 130 }}
           >

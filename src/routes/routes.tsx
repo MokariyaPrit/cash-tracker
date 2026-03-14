@@ -25,6 +25,10 @@ const routes: RouteObject[] = [
         element: <Persons />,
       },
       {
+        path: "persons/ledger",
+        element: <PersonLedger />,    
+      },
+      {
         path: "persons/ledger/:id",
         element: <PersonLedger />,
       },
@@ -45,7 +49,7 @@ const routes: RouteObject[] = [
         element: <CalendarDashboard />,
       },
       {
-        path: "recurring",   
+        path: "recurring",
         element: <RecurringTransactions />,
       },
     ],
