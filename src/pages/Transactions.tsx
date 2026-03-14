@@ -9,6 +9,7 @@ import {
   Stack,
   CircularProgress,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -88,8 +89,9 @@ export default function Transactions() {
     .map((t) => {
       if (t.type === "income") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
-      if (t.type === "lent") balance -= t.amount;
       if (t.type === "borrow") balance += t.amount;
+       // settlement resets balance to 0 — don't add/subtract, just reset
+      if (t.type === "settlement") balance = 0;
       return {
         id: t.id,
         date: t.date?.seconds
@@ -113,17 +115,30 @@ export default function Transactions() {
   const columns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1, minWidth: 110 },
     { field: "person", headerName: "Person", flex: 1, minWidth: 100 },
-    {
-      field: "type",
-      headerName: "Type",
-      flex: 1,
-      minWidth: 90,
-      renderCell: (params) => (
-        <Typography variant="body2" fontWeight={500}>
-          {capitalize(params.value)}
-        </Typography>
-      ),
-    },
+   {
+  field: "type",
+  headerName: "Type",
+  flex: 1,
+  minWidth: 90,
+  renderCell: (params) => {
+    if (params.value === "settlement") {
+      return (
+        <Chip
+          label="Settlement"
+          size="small"
+          color="success"
+          variant="outlined"
+          sx={{ fontSize: 11, fontWeight: 600 }}
+        />
+      );
+    }
+    return (
+      <Typography variant="body2" fontWeight={500}>
+        {capitalize(params.value)}
+      </Typography>
+    );
+  },
+},
     {
       field: "amount",
       headerName: "Amount",
@@ -303,7 +318,7 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, and lent/borrowed amounts.
+            View and manage all your income, expenses, and borrowed amounts.
           </Typography>
         </Box>
         <Button

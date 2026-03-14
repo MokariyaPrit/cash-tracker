@@ -103,7 +103,8 @@ export default function CalendarDashboard() {
     let total = 0;
     dailyTransactions.forEach((t) => {
       if (t.type === "income" || t.type === "borrow") total += t.amount;
-      if (t.type === "expense" || t.type === "lent") total -= t.amount;
+      if (t.type === "expense") total -= t.amount;
+      if (t.type === "settlement") total = 0
     });
 
     const isPositive = total >= 0;
@@ -133,28 +134,29 @@ export default function CalendarDashboard() {
     );
   });
 
-  const summary = monthTransactions.reduce(
-    (acc, t) => {
-      if (t.type === "income") acc.income += t.amount;
-      if (t.type === "expense") acc.expense += t.amount;
-      if (t.type === "borrow") acc.borrow += t.amount;
-      if (t.type === "lent") acc.lent += t.amount;
-      if (t.status === "pending") acc.pending += t.amount;
-      if (t.status === "completed") acc.completed += t.amount;
-      return acc;
-    },
-    {
-      income: 0,
-      expense: 0,
-      borrow: 0,
-      lent: 0,
-      pending: 0,
-      completed: 0,
-    },
-  );
+ const summary = monthTransactions.reduce(
+  (acc, t) => {
+    if (t.type === "income") acc.income += t.amount;
+    if (t.type === "expense") acc.expense += t.amount;
+    if (t.type === "borrow") acc.borrow += t.amount;
+    if (t.type === "settlement") acc.settlement += t.amount; 
+    if (t.status === "pending") acc.pending += t.amount;
+    if (t.status === "completed") acc.completed += t.amount;
+    return acc;
+  },
+  {
+    income: 0,
+    expense: 0,
+    borrow: 0,
+    lent: 0,
+    settlement: 0,  
+    pending: 0,
+    completed: 0,
+  },
+);
 
   const balance =
-    summary.income + summary.borrow - summary.expense - summary.lent;
+    summary.income + summary.borrow - summary.expense + summary.settlement;
 
   const summaryCards = [
     {
@@ -176,11 +178,11 @@ export default function CalendarDashboard() {
       icon: <SwapHorizRoundedIcon fontSize="small" />,
     },
     {
-      label: "Lent",
-      value: summary.lent,
-      color: "warning.main" as const,
-      icon: <SwapHorizRoundedIcon fontSize="small" />,
-    },
+  label: "Settled",
+  value: summary.settlement,
+  color: "success.main" as const,
+  icon: <DeleteOutlineRoundedIcon fontSize="small" />,  
+},
     {
       label: "Pending",
       value: summary.pending,
@@ -331,12 +333,11 @@ export default function CalendarDashboard() {
             color="text.primary"
             sx={{ mb: 1.5 }}
           >
-            {date.toLocaleDateString(undefined, {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })}
           </Typography>
 
           {selectedTransactions.length === 0 ? (

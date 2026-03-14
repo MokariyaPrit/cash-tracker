@@ -38,7 +38,6 @@ import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlin
 const typeOptions = [
   { value: "expense", label: "Expense" },
   { value: "income", label: "Income" },
-  { value: "lent", label: "Lent" },
   { value: "borrow", label: "Borrow" },
 ];
 
@@ -159,7 +158,7 @@ export default function AddTransaction() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         {id
           ? "Update the transaction details below."
-          : "Record income, expense, or money lent/borrowed."}
+          : "Record income, expense, or money borrowed."}
       </Typography>
 
       <Paper
