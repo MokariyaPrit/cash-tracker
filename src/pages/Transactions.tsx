@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Tooltip,
   Chip,
+  IconButton,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,6 +25,9 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
@@ -38,6 +42,35 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [persons, setPersons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ── Month filter state ─────────────────────────────────────────────
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return { month: now.getMonth(), year: now.getFullYear() };
+  });
+
+  const monthLabel = new Date(
+    selectedMonth.year,
+    selectedMonth.month
+  ).toLocaleString("default", { month: "long", year: "numeric" });
+
+  const isCurrentMonth =
+    selectedMonth.month === new Date().getMonth() &&
+    selectedMonth.year === new Date().getFullYear();
+
+  const prevMonth = () => {
+    setSelectedMonth((m) => {
+      if (m.month === 0) return { month: 11, year: m.year - 1 };
+      return { month: m.month - 1, year: m.year };
+    });
+  };
+
+  const nextMonth = () => {
+    setSelectedMonth((m) => {
+      if (m.month === 11) return { month: 0, year: m.year + 1 };
+      return { month: m.month + 1, year: m.year };
+    });
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -73,6 +106,7 @@ export default function Transactions() {
 
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
+  // ── Sort all transactions by date descending ───────────────────────
   const sortedTransactions = [...transactions].sort((a, b) => {
     const aDate = a.date?.seconds
       ? new Date(a.date.seconds * 1000)
@@ -83,14 +117,26 @@ export default function Transactions() {
     return bDate.getTime() - aDate.getTime();
   });
 
-  const reversed = [...sortedTransactions].reverse();
+  // ── Filter by selected month ───────────────────────────────────────
+  const filteredTransactions = sortedTransactions.filter((t) => {
+    const d = t.date?.seconds
+      ? new Date(t.date.seconds * 1000)
+      : new Date(t.date);
+    return (
+      d.getMonth() === selectedMonth.month &&
+      d.getFullYear() === selectedMonth.year
+    );
+  });
+
+  // ── Running balance (oldest → newest, then reverse for display) ────
+  const reversed = [...filteredTransactions].reverse();
   let balance = 0;
   const rows = reversed
     .map((t) => {
       if (t.type === "income") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
+      if (t.type === "lent") balance -= t.amount;
       if (t.type === "borrow") balance += t.amount;
-       // settlement resets balance to 0 — don't add/subtract, just reset
       if (t.type === "settlement") balance = 0;
       return {
         id: t.id,
@@ -112,33 +158,45 @@ export default function Transactions() {
     })
     .reverse();
 
+  // ── Month summary chips ────────────────────────────────────────────
+  const monthSummary = filteredTransactions.reduce(
+    (acc, t) => {
+      if (t.type === "income") acc.income += t.amount;
+      if (t.type === "expense") acc.expense += t.amount;
+      if (t.type === "lent") acc.lent += t.amount;
+      if (t.type === "borrow") acc.borrow += t.amount;
+      return acc;
+    },
+    { income: 0, expense: 0, lent: 0, borrow: 0 }
+  );
+
   const columns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1, minWidth: 110 },
     { field: "person", headerName: "Person", flex: 1, minWidth: 100 },
-   {
-  field: "type",
-  headerName: "Type",
-  flex: 1,
-  minWidth: 90,
-  renderCell: (params) => {
-    if (params.value === "settlement") {
-      return (
-        <Chip
-          label="Settlement"
-          size="small"
-          color="success"
-          variant="outlined"
-          sx={{ fontSize: 11, fontWeight: 600 }}
-        />
-      );
-    }
-    return (
-      <Typography variant="body2" fontWeight={500}>
-        {capitalize(params.value)}
-      </Typography>
-    );
-  },
-},
+    {
+      field: "type",
+      headerName: "Type",
+      flex: 1,
+      minWidth: 90,
+      renderCell: (params) => {
+        if (params.value === "settlement") {
+          return (
+            <Chip
+              label="Settlement"
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{ fontSize: 11, fontWeight: 600 }}
+            />
+          );
+        }
+        return (
+          <Typography variant="body2" fontWeight={500}>
+            {capitalize(params.value)}
+          </Typography>
+        );
+      },
+    },
     {
       field: "amount",
       headerName: "Amount",
@@ -155,22 +213,36 @@ export default function Transactions() {
       ),
     },
     {
+      field: "balance",
+      headerName: "Balance",
+      flex: 1,
+      minWidth: 100,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          fontWeight={600}
+          color={params.value >= 0 ? "success.main" : "error.main"}
+          sx={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          ₹{Number(params.value).toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
       field: "status",
       headerName: "Status",
       flex: 1,
       minWidth: 100,
       renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography
-            variant="body2"
-            color={
-              params.value === "completed" ? "success.main" : "text.secondary"
-            }
-            fontWeight={params.value === "completed" ? 600 : 400}
-          >
-            {capitalize(params.value)}
-          </Typography>
-        </Box>
+        <Typography
+          variant="body2"
+          color={
+            params.value === "completed" ? "success.main" : "text.secondary"
+          }
+          fontWeight={params.value === "completed" ? 600 : 400}
+        >
+          {capitalize(params.value)}
+        </Typography>
       ),
     },
     {
@@ -182,7 +254,6 @@ export default function Transactions() {
         params.value ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <EventAvailableRoundedIcon
-              fontSize="small"
               sx={{ color: "success.main", fontSize: 16 }}
             />
             <Typography variant="body2" color="success.main" fontWeight={500}>
@@ -213,7 +284,6 @@ export default function Transactions() {
               }}
             >
               <InfoOutlinedIcon
-                fontSize="small"
                 sx={{ color: "text.secondary", fontSize: 15, flexShrink: 0 }}
               />
               <Typography
@@ -290,12 +360,13 @@ export default function Transactions() {
         py: 3,
       }}
     >
+      {/* ── Header ── */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         alignItems={{ xs: "stretch", sm: "center" }}
         justifyContent="space-between"
         spacing={2}
-        sx={{ mb: 3 }}
+        sx={{ mb: 2 }}
       >
         <Box>
           <Typography variant="h4" fontWeight={700} color="text.primary">
@@ -305,20 +376,129 @@ export default function Transactions() {
             View and manage all your income, expenses, and borrowed amounts.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => navigate("/transactions/add")}
-          sx={{
-            borderRadius: 2,
-            alignSelf: { xs: "stretch", sm: "center" },
-            minWidth: { sm: 180 },
-          }}
-        >
-          Add transaction
-        </Button>
+
+        <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+          {/* Month navigator */}
+          <Paper
+            elevation={0}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 2,
+              overflow: "hidden",
+            }}
+          >
+            <IconButton
+              size="small"
+              onClick={prevMonth}
+              sx={{ borderRadius: 0, px: 1 }}
+            >
+              <ChevronLeftRoundedIcon />
+            </IconButton>
+
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={0.5}
+              sx={{ px: 1.5, minWidth: 170, justifyContent: "center" }}
+            >
+              <CalendarTodayRoundedIcon
+                sx={{ fontSize: 14, color: "text.secondary" }}
+              />
+              <Typography variant="body2" fontWeight={600}>
+                {monthLabel}
+              </Typography>
+            </Stack>
+
+            <IconButton
+              size="small"
+              onClick={nextMonth}
+              sx={{ borderRadius: 0, px: 1 }}
+            >
+              <ChevronRightRoundedIcon />
+            </IconButton>
+          </Paper>
+
+          {/* Jump back to current month */}
+          {!isCurrentMonth && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const now = new Date();
+                setSelectedMonth({
+                  month: now.getMonth(),
+                  year: now.getFullYear(),
+                });
+              }}
+              sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
+            >
+              This Month
+            </Button>
+          )}
+
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => navigate("/transactions/add")}
+            sx={{ borderRadius: 2, minWidth: { sm: 160 } }}
+          >
+            Add transaction
+          </Button>
+        </Stack>
       </Stack>
 
+      {/* ── Month summary chips ── */}
+      {filteredTransactions.length > 0 && (
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          sx={{ mb: 2.5, gap: 1 }}
+        >
+          <Chip
+            label={`Income ₹${monthSummary.income.toLocaleString()}`}
+            size="small"
+            color="success"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+          <Chip
+            label={`Expense ₹${monthSummary.expense.toLocaleString()}`}
+            size="small"
+            color="error"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+          {monthSummary.lent > 0 && (
+            <Chip
+              label={`Lent ₹${monthSummary.lent.toLocaleString()}`}
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          {monthSummary.borrow > 0 && (
+            <Chip
+              label={`Borrow ₹${monthSummary.borrow.toLocaleString()}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          <Chip
+            label={`${filteredTransactions.length} transactions`}
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 500 }}
+          />
+        </Stack>
+      )}
+
+      {/* ── Empty state ── */}
       {rows.length === 0 ? (
         <Paper
           elevation={0}
@@ -337,10 +517,10 @@ export default function Transactions() {
             sx={{ fontSize: 56, color: "text.disabled", mb: 1 }}
           />
           <Typography color="text.secondary" variant="body1" gutterBottom>
-            No transactions yet
+            No transactions in {monthLabel}
           </Typography>
           <Typography color="text.disabled" variant="body2" sx={{ mb: 2 }}>
-            Add your first transaction to start tracking.
+            Use the arrows to navigate months or add a new transaction.
           </Typography>
           <Button
             variant="contained"

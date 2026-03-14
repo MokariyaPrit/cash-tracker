@@ -9,6 +9,7 @@ import Transactions from "../pages/Transactions";
 import AddTransaction from "../pages/AddTransaction";
 import CalendarDashboard from "../pages/CalendarDashboard";
 import PersonLedger from "../pages/PersonLedger";
+import RecurringTransactions from "../pages/RecurringTransactions";
 
 const routes: RouteObject[] = [
   {
@@ -42,6 +43,10 @@ const routes: RouteObject[] = [
       {
         path: "calendar",
         element: <CalendarDashboard />,
+      },
+      {
+        path: "recurring",   
+        element: <RecurringTransactions />,
       },
     ],
   },

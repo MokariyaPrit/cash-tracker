@@ -11,7 +11,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch } from "../hooks/reduxHooks";
 import { clearUser } from "../store/authSlice";
 import { logout } from "../services/authService";
-
+import RepeatRoundedIcon from "@mui/icons-material/RepeatRounded";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
 // import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
@@ -36,6 +36,11 @@ const navItems = [
     icon: <ReceiptLongRoundedIcon fontSize="small" />,
   },
   //   { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
+    {
+    path: "/recurring",
+    label: "Recurring",
+    icon: <RepeatRoundedIcon  fontSize="small" />,
+  },
 ];
 
 export default function Navbar() {
