@@ -7,7 +7,10 @@ import {
   CircularProgress,
   Link,
   alpha,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Signupimg from "../components/Signupimg";
 import { useAlert } from "../contexts/AlertContext";
@@ -18,6 +21,8 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
   const showAlert = useAlert();
@@ -35,7 +40,7 @@ export default function Signup() {
 
     try {
       await signupFirebase(email, password);
-      await logout(); // so they land on login to sign in with new account
+      await logout();
       showAlert("Signup successful", "success");
       navigate("/login");
     } catch (error: any) {
@@ -92,24 +97,50 @@ export default function Signup() {
 
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               fullWidth
               required
               margin="normal"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      aria-label="toggle password visibility"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
               label="Confirm Password"
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               fullWidth
               required
               margin="normal"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      edge="end"
+                      aria-label="toggle confirm password visibility"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <Button
@@ -119,7 +150,7 @@ export default function Signup() {
               disabled={loading}
               sx={{ py: 1.5, mt: 2, mb: 2 }}
             >
-              {loading ? <CircularProgress size={24} /> : "signup"}
+              {loading ? <CircularProgress size={24} /> : "Sign Up"}
             </Button>
           </form>
 
