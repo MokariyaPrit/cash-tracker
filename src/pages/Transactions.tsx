@@ -204,22 +204,6 @@ export default function Transactions() {
       ),
     },
     {
-      field: "balance",
-      headerName: "Balance",
-      flex: 1,
-      minWidth: 100,
-      renderCell: (params) => (
-        <Typography
-          variant="body2"
-          fontWeight={600}
-          color={params.value >= 0 ? "success.main" : "error.main"}
-          sx={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          ₹{Number(params.value).toLocaleString()}
-        </Typography>
-      ),
-    },
-    {
       field: "status",
       headerName: "Status",
       flex: 1,

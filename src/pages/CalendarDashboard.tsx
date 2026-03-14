@@ -16,7 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import {
-  getTransactions,
+  getTransactionsByMonth,   // changed from getTransactions
   deleteTransaction,
 } from "../services/transactionService";
 
@@ -49,16 +49,13 @@ export default function CalendarDashboard() {
   const [persons, setPersons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
-  const loadData = async () => {
+  // ── loadData now accepts year+month so it fetches only that month ──
+  const loadData = async (year: number, month: number) => {
     if (!user) return;
     setLoading(true);
     try {
       const [t, p] = await Promise.all([
-        getTransactions(user.uid),
+        getTransactionsByMonth(user.uid, year, month), // 👈 only active month
         getPersons(user.uid),
       ]);
       setTransactions(t);
@@ -67,6 +64,11 @@ export default function CalendarDashboard() {
       setLoading(false);
     }
   };
+
+  // ── Initial load — use current date ───────────────────────────────
+  useEffect(() => {
+    loadData(date.getFullYear(), date.getMonth());
+  }, [user]);
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -78,11 +80,12 @@ export default function CalendarDashboard() {
     });
     if (!ok) return;
     await deleteTransaction(id);
-    loadData();
+    loadData(date.getFullYear(), date.getMonth()); // 👈 reload same month
   };
 
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
+  // ── Firestore already returns only this month, no extra filter needed
   const selectedTransactions = transactions.filter((t) => {
     const tDate = t.date?.seconds
       ? new Date(t.date.seconds * 1000)
@@ -105,7 +108,7 @@ export default function CalendarDashboard() {
       if (t.type === "income" || t.type === "advance") total += t.amount;
       if (t.type === "expense") total -= t.amount;
       if (t.type === "salary") total -= t.amount;
-      if (t.type === "settlement") total -= t.amount
+      if (t.type === "settlement") total -= t.amount;
     });
 
     const isPositive = total >= 0;
@@ -120,45 +123,37 @@ export default function CalendarDashboard() {
           lineHeight: 1.2,
         }}
       >
-        {isPositive ? "" : ""}₹{Math.abs(total).toLocaleString()}
+        ₹{Math.abs(total).toLocaleString()}
       </Typography>
     );
   };
 
-  const monthTransactions = transactions.filter((t) => {
-    const tDate = t.date?.seconds
-      ? new Date(t.date.seconds * 1000)
-      : new Date(t.date);
-    return (
-      tDate.getMonth() === date.getMonth() &&
-      tDate.getFullYear() === date.getFullYear()
-    );
-  });
-
- const summary = monthTransactions.reduce(
-  (acc, t) => {
-    if (t.type === "income") acc.income += t.amount;
-    if (t.type === "expense") acc.expense += t.amount;
-    if (t.type === "salary") acc.salary += t.amount;
-    if (t.type === "advance") acc.advance += t.amount;
-    if (t.type === "settlement") acc.settlement += t.amount; 
-    if (t.status === "pending") acc.pending += t.amount;
-    if (t.status === "completed") acc.completed += t.amount;
-    return acc;
-  },
-  {
-    income: 0,
-    expense: 0,
-    salary: 0,
-    advance: 0,
-    settlement: 0,  
-    pending: 0,
-    completed: 0,
-  },
-);
+  // ── Firestore already filtered by month — use transactions directly ─
+  const summary = transactions.reduce(
+    (acc, t) => {
+      if (t.type === "income")     acc.income     += t.amount;
+      if (t.type === "expense")    acc.expense    += t.amount;
+      if (t.type === "salary")     acc.salary     += t.amount;
+      if (t.type === "advance")    acc.advance    += t.amount;
+      if (t.type === "settlement") acc.settlement += t.amount;
+      if (t.status === "pending")   acc.pending   += t.amount;
+      if (t.status === "completed") acc.completed += t.amount;
+      return acc;
+    },
+    {
+      income: 0,
+      expense: 0,
+      salary: 0,
+      advance: 0,
+      settlement: 0,
+      pending: 0,
+      completed: 0,
+    }
+  );
 
   const balance =
-    summary.income + summary.advance - summary.expense + summary.settlement - summary.salary ;
+    summary.income + summary.advance - summary.expense +
+    summary.settlement - summary.salary;
 
   const summaryCards = [
     {
@@ -186,11 +181,11 @@ export default function CalendarDashboard() {
       icon: <SwapHorizRoundedIcon fontSize="small" />,
     },
     {
-  label: "Settled",
-  value: summary.settlement,
-  color: "success.main" as const,
-  icon: <DeleteOutlineRoundedIcon fontSize="small" />,  
-},
+      label: "Settled",
+      value: summary.settlement,
+      color: "success.main" as const,
+      icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+    },
     {
       label: "Pending",
       value: summary.pending,
@@ -200,7 +195,7 @@ export default function CalendarDashboard() {
     {
       label: "Balance",
       value: balance,
-      color: balance >= 0 ? "primary.main" : "error.main",
+      color: balance >= 0 ? "primary.main" : ("error.main" as const),
       icon: <AccountBalanceRoundedIcon fontSize="small" />,
     },
   ];
@@ -255,9 +250,7 @@ export default function CalendarDashboard() {
       }}
     >
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-        <CalendarMonthRoundedIcon
-          sx={{ fontSize: 32, color: "primary.main" }}
-        />
+        <CalendarMonthRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
         <Typography variant="h4" fontWeight={700} color="text.primary">
           DashBoard
         </Typography>
@@ -266,6 +259,7 @@ export default function CalendarDashboard() {
         View monthly summary and transactions by day.
       </Typography>
 
+      {/* ── Summary Cards ── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
           <Grid size={{ xs: 6, sm: 4, md: 2 }} key={card.label}>
@@ -279,30 +273,18 @@ export default function CalendarDashboard() {
                 height: "100%",
               }}
             >
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{ mb: 0.5 }}
-              >
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                 <Box sx={{ color: card.color, display: "flex" }}>
                   {card.icon}
                 </Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  fontWeight={600}
-                >
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
                   {card.label}
                 </Typography>
               </Stack>
               <Typography
                 variant="h6"
                 fontWeight={700}
-                sx={{
-                  color: card.color,
-                  fontVariantNumeric: "tabular-nums",
-                }}
+                sx={{ color: card.color, fontVariantNumeric: "tabular-nums" }}
               >
                 ₹{Number(card.value).toLocaleString()}
               </Typography>
@@ -312,6 +294,7 @@ export default function CalendarDashboard() {
       </Grid>
 
       <Grid container spacing={3}>
+        {/* ── Calendar ── */}
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper
             elevation={0}
@@ -327,13 +310,21 @@ export default function CalendarDashboard() {
               value={date}
               onChange={(value) => setDate(value as Date)}
               onActiveStartDateChange={({ activeStartDate }) => {
-                if (activeStartDate) setDate(activeStartDate);
+                if (activeStartDate) {
+                  setDate(activeStartDate);
+                  // 👈 reload data for the newly visible month
+                  loadData(
+                    activeStartDate.getFullYear(),
+                    activeStartDate.getMonth()
+                  );
+                }
               }}
               tileContent={tileContent}
             />
           </Paper>
         </Grid>
 
+        {/* ── Day transactions ── */}
         <Grid size={{ xs: 12, md: 7 }}>
           <Typography
             variant="subtitle1"
@@ -342,10 +333,10 @@ export default function CalendarDashboard() {
             sx={{ mb: 1.5 }}
           >
             {date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })}
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
           </Typography>
 
           {selectedTransactions.length === 0 ? (
@@ -358,7 +349,7 @@ export default function CalendarDashboard() {
                 border: `1px dashed ${theme.palette.divider}`,
                 backgroundColor: alpha(
                   theme.palette.text.primary,
-                  theme.palette.mode === "light" ? 0.02 : 0.04,
+                  theme.palette.mode === "light" ? 0.02 : 0.04
                 ),
               }}
             >
@@ -394,12 +385,7 @@ export default function CalendarDashboard() {
                       <Typography variant="subtitle1" fontWeight={600}>
                         {personMap[t.personId] || "-"}
                       </Typography>
-                      <Stack
-                        direction="row"
-                        spacing={1.5}
-                        flexWrap="wrap"
-                        sx={{ mt: 0.5 }}
-                      >
+                      <Stack direction="row" spacing={1.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
                         <Typography variant="body2" color="text.secondary">
                           {capitalize(t.type)}
                         </Typography>
@@ -441,17 +427,12 @@ export default function CalendarDashboard() {
                         size="small"
                         color="error"
                         variant="outlined"
-                        startIcon={
-                          <DeleteOutlineRoundedIcon fontSize="small" />
-                        }
+                        startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
                         onClick={() => handleDelete(t.id)}
                         sx={{
                           borderRadius: 1.5,
                           "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.error.main,
-                              0.08,
-                            ),
+                            backgroundColor: alpha(theme.palette.error.main, 0.08),
                           },
                         }}
                       >
