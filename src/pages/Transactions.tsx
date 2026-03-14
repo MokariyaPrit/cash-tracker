@@ -137,7 +137,7 @@ export default function Transactions() {
       if (t.type === "expense") balance -= t.amount;
       if (t.type === "salary") balance -= t.amount;
       if (t.type === "advance") balance += t.amount;
-      if (t.type === "settlement") balance = 0;
+      if (t.type === "settlement") balance += t.amount;
       return {
         id: t.id,
         date: t.date?.seconds
