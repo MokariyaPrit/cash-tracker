@@ -1,58 +1,155 @@
 import { useEffect, useState } from "react";
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Link,
+  alpha,
+  CircularProgress,
+} from "@mui/material";
 import { login } from "../services/authService";
 import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
 import { setUser } from "../store/authSlice";
-import { TextField, Button, Container } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import Loginimg from "../components/Loginimg";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
-  
-  const handleLogin = async () => {
-  try {
-    const res = await login(email, password);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
 
-    dispatch(setUser(res.user));
+    setLoading(true);
 
-    navigate("/"); // redirect to dashboard
-  } catch (error: any) {
-    alert(error.message);
+    try {
+      const res = await login(email, password);
+
+      dispatch(setUser(res.user));
+
+      navigate("/Calendar", { replace: true });
+    } catch (error: any) {
+      alert(error.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      navigate("/Calendar");
+    }
+  }, [user]);
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
-};
-
-
-useEffect(() => {
-  if (user) {
-    navigate("/Calendar");
-  }
-}, [user]);
 
   return (
-    <Container maxWidth="sm">
-      <TextField
-        fullWidth
-        label="Email"
-        margin="normal"
-        onChange={(e) => setEmail(e.target.value)}
-      />
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" },
+        bgcolor: "background.default",
+      }}
+    >
+      {/* Left Image */}
+      <Box
+        sx={{
+          flex: 1,
+          display: { xs: "none", md: "flex" },
+          justifyContent: "center",
+          alignItems: "center",
+          bgcolor: alpha("#2563eb", 0.1),
+          p: 4,
+        }}
+      >
+        <Loginimg width="80%" />
+      </Box>
 
-      <TextField
-        fullWidth
-        type="password"
-        label="Password"
-        margin="normal"
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      {/* Login Form */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          p: { xs: 3, md: 6 },
+        }}
+      >
+        <Box sx={{ maxWidth: 400, width: "100%" }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            Login
+          </Typography>
 
-      <Button variant="contained" onClick={handleLogin}>
-        Login
-      </Button>
-    </Container>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Welcome back! Please login to your account.
+          </Typography>
+
+          <form onSubmit={handleLogin}>
+            <TextField
+              label="Email"
+              type="email"
+              fullWidth
+              margin="normal"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              margin="normal"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading}
+              sx={{ py: 1.5, mt: 2, mb: 2 }}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+
+          <Typography variant="body2" align="center">
+            Don’t have an account?{" "}
+            <Link
+              component="button"
+              onClick={() => navigate("/signup")}
+              sx={{ color: "primary.main", fontWeight: "bold" }}
+            >
+              Sign Up
+            </Link>
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
   );
 }
