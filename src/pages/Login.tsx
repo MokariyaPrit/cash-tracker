@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from "../hooks/reduxHooks";
 import { setUser } from "../store/authSlice";
 import { useNavigate } from "react-router-dom";
 import Loginimg from "../components/Loginimg";
+import { useAlert } from "../contexts/AlertContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function Login() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
+  const showAlert = useAlert();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +38,7 @@ export default function Login() {
 
       navigate("/Calendar", { replace: true });
     } catch (error: any) {
-      alert(error.message || "Login failed");
+      showAlert(error.message || "Login failed", "error");
     } finally {
       setLoading(false);
     }
@@ -111,6 +113,7 @@ export default function Login() {
               label="Email"
               type="email"
               fullWidth
+               autoComplete="email"
               margin="normal"
               required
               value={email}
@@ -123,6 +126,7 @@ export default function Login() {
               fullWidth
               margin="normal"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

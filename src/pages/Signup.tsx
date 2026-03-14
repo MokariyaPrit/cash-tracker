@@ -10,39 +10,44 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Signupimg from "../components/Signupimg";
+import { useAlert } from "../contexts/AlertContext";
+import { signup as signupFirebase, logout } from "../services/authService";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const navigate = useNavigate();
+  const showAlert = useAlert();
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
+ const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (loading) return;
 
-    setLoading(true);
-
-    try {
-      // const res = await signup(email, password);
-      // await createUserProfile(res.user);
-      
-      alert("Signup successful");
-      navigate("/login");
-
-    } catch (error: any) {
-
-  if (error.code === "auth/email-already-in-use") {
-    alert("This email is already registered. Please login.");
-  } else {
-    alert(error.message || "Signup failed");
+  if (password !== confirmPassword) {
+    showAlert("Passwords do not match", "error");
+    return;
   }
 
-} finally {
-      setLoading(false);
+  setLoading(true);
+
+  try {
+    await signupFirebase(email, password);
+    await logout(); // so they land on login to sign in with new account
+    showAlert("Signup successful", "success");
+    navigate("/login");
+  } catch (error: any) {
+    if (error.code === "auth/email-already-in-use") {
+      showAlert("This email is already registered. Please login.", "error");
+    } else {
+      showAlert(error.message || "Signup failed", "error");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box
@@ -74,12 +79,13 @@ export default function Signup() {
           </Typography>
 
           <form onSubmit={handleSignup}>
-            <TextField
+           <TextField
               label="Email"
               type="email"
               fullWidth
               required
               margin="normal"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -90,9 +96,22 @@ export default function Signup() {
               fullWidth
               required
               margin="normal"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
+                    <TextField
+          label="Confirm Password"
+          type="password"
+          fullWidth
+          required
+          margin="normal"
+          autoComplete="new-password"
+          
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
 
             <Button
               type="submit"
