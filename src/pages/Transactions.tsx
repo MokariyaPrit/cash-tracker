@@ -20,11 +20,7 @@ import { getPersons } from "../services/personService";
 import { useAppSelector } from "../hooks/reduxHooks";
 import { useConfirm } from "../contexts/ConfirmContext";
 
-import {
-  DataGrid,
-  type GridColDef,
-  GridToolbar,
-} from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, GridToolbar } from "@mui/x-data-grid";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
@@ -76,9 +72,7 @@ export default function Transactions() {
     loadData();
   };
 
-  const personMap = Object.fromEntries(
-    persons.map((p) => [p.id, p.name])
-  );
+  const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
   // Sort transactions by date (newest first)
   const sortedTransactions = [...transactions].sort((a, b) => {
@@ -94,27 +88,29 @@ export default function Transactions() {
   // Running balance calculation (oldest first for balance column)
   const reversed = [...sortedTransactions].reverse();
   let balance = 0;
-  const rows = reversed.map((t) => {
-    if (t.type === "income") balance += t.amount;
-    if (t.type === "expense") balance -= t.amount;
-    if (t.type === "lent") balance -= t.amount;
-    if (t.type === "borrow") balance += t.amount;
-    return {
-      id: t.id,
-      date: t.date?.seconds
-        ? new Date(t.date.seconds * 1000).toLocaleDateString(undefined, {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
-        : "-",
-      person: personMap[t.personId] || "-",
-      type: t.type,
-      amount: t.amount,
-      status: t.status,
-      balance,
-    };
-  }).reverse();
+  const rows = reversed
+    .map((t) => {
+      if (t.type === "income") balance += t.amount;
+      if (t.type === "expense") balance -= t.amount;
+      if (t.type === "lent") balance -= t.amount;
+      if (t.type === "borrow") balance += t.amount;
+      return {
+        id: t.id,
+        date: t.date?.seconds
+          ? new Date(t.date.seconds * 1000).toLocaleDateString(undefined, {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+        person: personMap[t.personId] || "-",
+        type: t.type,
+        amount: t.amount,
+        status: t.status,
+        balance,
+      };
+    })
+    .reverse();
 
   const columns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1, minWidth: 100 },
@@ -136,7 +132,11 @@ export default function Transactions() {
       flex: 1,
       minWidth: 100,
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight={600} sx={{ fontVariantNumeric: "tabular-nums" }}>
+        <Typography
+          variant="body2"
+          fontWeight={600}
+          sx={{ fontVariantNumeric: "tabular-nums" }}
+        >
           ₹{Number(params.value).toLocaleString()}
         </Typography>
       ),
@@ -165,7 +165,9 @@ export default function Transactions() {
       renderCell: (params) => (
         <Typography
           variant="body2"
-          color={params.value === "completed" ? "success.main" : "text.secondary"}
+          color={
+            params.value === "completed" ? "success.main" : "text.secondary"
+          }
         >
           {capitalize(params.value)}
         </Typography>
@@ -240,7 +242,8 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, and lent/borrowed amounts.
+            View and manage all your income, expenses, and lent/borrowed
+            amounts.
           </Typography>
         </Box>
         <Button
@@ -267,7 +270,7 @@ export default function Transactions() {
             border: `1px dashed ${theme.palette.divider}`,
             backgroundColor: alpha(
               theme.palette.text.primary,
-              theme.palette.mode === "light" ? 0.02 : 0.04
+              theme.palette.mode === "light" ? 0.02 : 0.04,
             ),
           }}
         >

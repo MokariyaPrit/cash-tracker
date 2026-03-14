@@ -70,7 +70,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           </DialogContent>
         )}
         <DialogActions sx={{ px: 3, pb: 2, pt: 0 }}>
-          <Button onClick={() => handleClose(false)} variant="outlined" color="inherit">
+          <Button
+            onClick={() => handleClose(false)}
+            variant="outlined"
+            color="inherit"
+          >
             {options.cancelLabel}
           </Button>
           <Button

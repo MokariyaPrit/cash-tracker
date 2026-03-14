@@ -19,30 +19,30 @@ const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
-     {
-  path: "persons",
-  element: <Persons />,
-},
-{
-  path: "persons/ledger/:id",
-  element: <PersonLedger />,
-},
-  {
-  path: "transactions",
-  element: <Transactions />,
-},
-{
-  path: "transactions/add",
-  element: <AddTransaction />,
-},
-{
-  path: "transactions/edit/:id",
-  element: <AddTransaction />,
-},
-{
-  path: "calendar",
-  element: <CalendarDashboard />
-}
+      {
+        path: "persons",
+        element: <Persons />,
+      },
+      {
+        path: "persons/ledger/:id",
+        element: <PersonLedger />,
+      },
+      {
+        path: "transactions",
+        element: <Transactions />,
+      },
+      {
+        path: "transactions/add",
+        element: <AddTransaction />,
+      },
+      {
+        path: "transactions/edit/:id",
+        element: <AddTransaction />,
+      },
+      {
+        path: "calendar",
+        element: <CalendarDashboard />,
+      },
     ],
   },
   {

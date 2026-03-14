@@ -150,7 +150,9 @@ export default function AddTransaction() {
         {id ? (
           <EditRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
         ) : (
-          <ReceiptLongRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <ReceiptLongRoundedIcon
+            sx={{ fontSize: 32, color: "primary.main" }}
+          />
         )}
         <Typography variant="h4" fontWeight={700} color="text.primary">
           {id ? "Edit transaction" : "Add transaction"}
@@ -170,7 +172,7 @@ export default function AddTransaction() {
           border: `1px solid ${theme.palette.divider}`,
           backgroundColor: alpha(
             theme.palette.primary.main,
-            theme.palette.mode === "light" ? 0.02 : 0.08
+            theme.palette.mode === "light" ? 0.02 : 0.08,
           ),
         }}
       >
@@ -184,10 +186,12 @@ export default function AddTransaction() {
             onChange={(e) => setPersonId(e.target.value)}
             sx={inputSx}
             SelectProps={{ displayEmpty: true }}
+            InputLabelProps={{ shrink: true }}
           >
             <MenuItem value="">
               <em>Select person</em>
             </MenuItem>
+
             {persons.map((p) => (
               <MenuItem key={p.id} value={p.id}>
                 {p.name}

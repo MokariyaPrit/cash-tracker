@@ -1,4 +1,12 @@
-import { AppBar, Toolbar, Typography, Button, Box, useTheme, alpha } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  useTheme,
+  alpha,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch } from "../hooks/reduxHooks";
 import { clearUser } from "../store/authSlice";
@@ -12,10 +20,22 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 
 const navItems = [
-  { path: "/calendar", label: "Dashboard", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
-  { path: "/persons", label: "Persons", icon: <PeopleRoundedIcon fontSize="small" /> },
-  { path: "/transactions", label: "Transactions", icon: <ReceiptLongRoundedIcon fontSize="small" /> },
-//   { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
+  {
+    path: "/calendar",
+    label: "Dashboard",
+    icon: <CalendarMonthRoundedIcon fontSize="small" />,
+  },
+  {
+    path: "/persons",
+    label: "Persons",
+    icon: <PeopleRoundedIcon fontSize="small" />,
+  },
+  {
+    path: "/transactions",
+    label: "Transactions",
+    icon: <ReceiptLongRoundedIcon fontSize="small" />,
+  },
+  //   { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
 ];
 
 export default function Navbar() {

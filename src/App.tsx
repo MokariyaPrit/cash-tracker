@@ -4,7 +4,7 @@ import { useAppDispatch } from "./hooks/reduxHooks";
 import { setUser, clearUser } from "./store/authSlice";
 import { listenAuthState } from "./services/authService";
 import routes from "./routes/routes";
-import './App.css'
+import "./App.css";
 function renderRoutes(routes: any[]) {
   return routes.map((route, index) => (
     <Route key={index} path={route.path} element={route.element}>
@@ -16,22 +16,22 @@ function renderRoutes(routes: any[]) {
 function App() {
   const dispatch = useAppDispatch();
 
-useEffect(() => {
-  const unsubscribe = listenAuthState((user: any) => {
-    if (user) {
-      dispatch(
-        setUser({
-          uid: user.uid,
-          email: user.email,
-        })
-      )
-    } else {
-      dispatch(clearUser())
-    }
-  })
+  useEffect(() => {
+    const unsubscribe = listenAuthState((user: any) => {
+      if (user) {
+        dispatch(
+          setUser({
+            uid: user.uid,
+            email: user.email,
+          }),
+        );
+      } else {
+        dispatch(clearUser());
+      }
+    });
 
-  return () => unsubscribe()
-}, [dispatch])
+    return () => unsubscribe();
+  }, [dispatch]);
 
   return (
     <BrowserRouter>

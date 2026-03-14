@@ -25,7 +25,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       if (reason === "clickaway") return;
       setOpen(false);
     },
-    []
+    [],
   );
 
   return (

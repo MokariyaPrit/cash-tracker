@@ -7,10 +7,7 @@ import { useAppSelector } from "../hooks/reduxHooks";
 import { useNavigate } from "react-router-dom";
 import { deleteTransaction } from "../services/transactionService";
 
-import {
-  DataGrid,
-  type GridColDef
-} from "@mui/x-data-grid";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { useParams } from "react-router-dom";
 import { useConfirm } from "../contexts/ConfirmContext";
 
@@ -38,40 +35,35 @@ export default function PersonLedger() {
   useEffect(() => {
     loadData();
   }, [user]);
-const loadData = async () => {
+  const loadData = async () => {
+    if (!user) return;
 
-  if (!user) return;
+    const t = await getTransactions(user.uid);
+    const p = await getPersons(user.uid);
 
-  const t = await getTransactions(user.uid);
-  const p = await getPersons(user.uid);
+    setTransactions(t);
+    setPersons(p);
 
-  setTransactions(t);
-  setPersons(p);
-
-  if (id) {
-    const person = p.find((x) => x.id === id);
-    setSelectedPerson(person);
-  }
-
-};
+    if (id) {
+      const person = p.find((x) => x.id === id);
+      setSelectedPerson(person);
+    }
+  };
 
   // PERSON BALANCE LIST
   const personBalances = persons.map((person) => {
-
     const personTransactions = transactions.filter(
-      (t) => t.personId === person.id
+      (t) => t.personId === person.id,
     );
 
     let balance = 0;
 
     personTransactions.forEach((t) => {
-
       if (t.type === "income") balance += t.amount;
       if (t.type === "borrow") balance += t.amount;
 
       if (t.type === "expense") balance -= t.amount;
       if (t.type === "lent") balance -= t.amount;
-
     });
 
     return {
@@ -103,7 +95,7 @@ const loadData = async () => {
       renderCell: (params) => (
         <Button
           onClick={() =>
-            setSelectedPerson(persons.find(p => p.id === params.row.id))
+            setSelectedPerson(persons.find((p) => p.id === params.row.id))
           }
         >
           View Ledger
@@ -118,7 +110,6 @@ const loadData = async () => {
   const personRows = transactions
     .filter((t) => t.personId === selectedPerson?.id)
     .sort((a, b) => {
-
       const aDate = a.date?.seconds
         ? new Date(a.date.seconds * 1000)
         : new Date(a.date);
@@ -130,7 +121,6 @@ const loadData = async () => {
       return aDate.getTime() - bDate.getTime();
     })
     .map((t) => {
-
       if (t.type === "income") balance += t.amount;
       if (t.type === "borrow") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
@@ -148,69 +138,65 @@ const loadData = async () => {
       };
     });
 
-const transactionColumns: GridColDef[] = [
-  { field: "date", headerName: "Date", flex: 1 },
+  const transactionColumns: GridColDef[] = [
+    { field: "date", headerName: "Date", flex: 1 },
 
-  { field: "type", headerName: "Type", flex: 1 },
+    { field: "type", headerName: "Type", flex: 1 },
 
-  {
-    field: "amount",
-    headerName: "Amount",
-    flex: 1,
-    renderCell: (params) => `₹${params.value}`,
-  },
+    {
+      field: "amount",
+      headerName: "Amount",
+      flex: 1,
+      renderCell: (params) => `₹${params.value}`,
+    },
 
-  {
-    field: "balance",
-    headerName: "Balance",
-    flex: 1,
-    renderCell: (params) => (
-      <span style={{ color: params.value >= 0 ? "green" : "red" }}>
-        ₹{params.value}
-      </span>
-    ),
-  },
+    {
+      field: "balance",
+      headerName: "Balance",
+      flex: 1,
+      renderCell: (params) => (
+        <span style={{ color: params.value >= 0 ? "green" : "red" }}>
+          ₹{params.value}
+        </span>
+      ),
+    },
 
-  { field: "status", headerName: "Status", flex: 1 },
+    { field: "status", headerName: "Status", flex: 1 },
 
-  {
-    field: "actions",
-    headerName: "Actions",
-    flex: 1,
-    sortable: false,
-    filterable: false,
-    renderCell: (params) => (
-      <>
-        <Button
-          size="small"
-          onClick={() =>
-            navigate(`/transactions/edit/${params.row.id}`)
-          }
-        >
-          Edit
-        </Button>
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <>
+          <Button
+            size="small"
+            onClick={() => navigate(`/transactions/edit/${params.row.id}`)}
+          >
+            Edit
+          </Button>
 
-        <Button
-          size="small"
-          color="error"
-          onClick={() => handleDelete(params.row.id)}
-        >
-          Delete
-        </Button>
-      </>
-    ),
-  },
-];
+          <Button
+            size="small"
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
 
   return (
     <Box>
-
       {!selectedPerson && (
         <>
           <Typography variant="h4" sx={{ mb: 2 }}>
             Person Balances
           </Typography>
-
 
           <DataGrid
             rows={personBalances}
@@ -223,20 +209,19 @@ const transactionColumns: GridColDef[] = [
 
       {selectedPerson && (
         <>
-          <Button
-            sx={{ mb: 2 }}
-            onClick={() => setSelectedPerson(null)}
-          >
+          <Button sx={{ mb: 2 }} onClick={() => setSelectedPerson(null)}>
             ← Back
           </Button>
 
-        <Button
-  variant="contained"
-  sx={{ mb: 2 }}
-  onClick={() => navigate(`/transactions/add?personId=${selectedPerson.id}`)}
->
-  Add Transaction
-</Button>
+          <Button
+            variant="contained"
+            sx={{ mb: 2 }}
+            onClick={() =>
+              navigate(`/transactions/add?personId=${selectedPerson.id}`)
+            }
+          >
+            Add Transaction
+          </Button>
 
           <Typography variant="h4" sx={{ mb: 2 }}>
             {selectedPerson.name} Ledger
@@ -250,7 +235,6 @@ const transactionColumns: GridColDef[] = [
           />
         </>
       )}
-
     </Box>
   );
 }

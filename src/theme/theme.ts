@@ -672,7 +672,7 @@ const getDesignTokens = (mode: PaletteMode): any => ({
           color: theme.palette.common.white,
           fontSize: '0.875rem',
           borderRadius: theme.shape.borderRadius,
-          padding: '8px 12px',  
+          padding: '8px 12px',
         }),
         arrow: ({ theme }: any) => ({
           color: theme.palette.grey[800],

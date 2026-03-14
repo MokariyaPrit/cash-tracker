@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import bgimg from '../assets/sign.jpg'
+import bgimg from "../assets/sign.jpg";
 // Define the interface with the correct name
 interface SignupIllustrationProps {
   width?: string | number;
@@ -7,7 +7,10 @@ interface SignupIllustrationProps {
 }
 
 // Use the correct interface name in the component
-export default function Signupimg({ width = "100%", height = "auto" }: SignupIllustrationProps) {
+export default function Signupimg({
+  width = "100%",
+  height = "auto",
+}: SignupIllustrationProps) {
   return (
     <Box
       component="img"
@@ -17,7 +20,7 @@ export default function Signupimg({ width = "100%", height = "auto" }: SignupIll
         width,
         height,
         objectFit: "contain",
-        borderRadius:"35px"
+        borderRadius: "35px",
       }}
     />
   );

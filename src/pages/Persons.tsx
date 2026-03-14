@@ -103,6 +103,7 @@ export default function Persons() {
         Add people to track balances and ledgers with.
       </Typography>
 
+      {/* <div className="main_div"> */}
       <Paper
         elevation={0}
         sx={{
@@ -112,53 +113,58 @@ export default function Persons() {
           border: `1px solid ${theme.palette.divider}`,
           backgroundColor: alpha(
             theme.palette.primary.main,
-            theme.palette.mode === "light" ? 0.02 : 0.08
+            theme.palette.mode === "light" ? 0.02 : 0.08,
           ),
         }}
       >
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
+          justifyContent="space-between"
           alignItems={{ xs: "stretch", sm: "flex-end" }}
         >
-          <TextField
-            label="Person name"
-            placeholder="e.g. John, Roommate"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            fullWidth
-            size="small"
-            disabled={adding}
-            sx={{
-              "& .MuiOutlinedInput-root": {
+          <div className="mian_fisrst" style={{ width: "70%" }}>
+            <TextField
+              label="Person name"
+              placeholder="e.g. John, Roommate"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              fullWidth
+              size="small"
+              disabled={adding}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  backgroundColor: theme.palette.background.paper,
+                },
+              }}
+            />
+          </div>
+          <div className="main_secound">
+            <Button
+              variant="contained"
+              onClick={handleAdd}
+              disabled={!name.trim() || adding}
+              startIcon={
+                adding ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <PersonAddRoundedIcon />
+                )
+              }
+              sx={{
                 borderRadius: 2,
-                backgroundColor: theme.palette.background.paper,
-              },
-            }}
-          />
-          <Button
-            variant="contained"
-            onClick={handleAdd}
-            disabled={!name.trim() || adding}
-            startIcon={
-              adding ? (
-                <CircularProgress size={18} color="inherit" />
-              ) : (
-                <PersonAddRoundedIcon />
-              )
-            }
-            sx={{
-              borderRadius: 2,
-              minWidth: { xs: "100%", sm: 120 },
-              py: 1.25,
-            }}
-          >
-            {adding ? "Adding…" : "Add person"}
-          </Button>
+                minWidth: { xs: "100%", sm: 120 },
+                py: 1.25,
+              }}
+            >
+              {adding ? "Adding…" : "Add person"}
+            </Button>
+          </div>
         </Stack>
       </Paper>
-
+      {/* </div> */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress />
@@ -173,7 +179,7 @@ export default function Persons() {
             border: `1px dashed ${theme.palette.divider}`,
             backgroundColor: alpha(
               theme.palette.text.primary,
-              theme.palette.mode === "light" ? 0.02 : 0.04
+              theme.palette.mode === "light" ? 0.02 : 0.04,
             ),
           }}
         >
@@ -209,7 +215,11 @@ export default function Persons() {
                 },
               }}
             >
-              <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+              <Typography
+                variant="subtitle1"
+                fontWeight={600}
+                color="text.primary"
+              >
                 {p.name}
               </Typography>
               <Stack direction="row" spacing={0.5} alignItems="center">

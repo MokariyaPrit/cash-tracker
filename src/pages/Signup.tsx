@@ -22,32 +22,32 @@ export default function Signup() {
   const navigate = useNavigate();
   const showAlert = useAlert();
 
- const handleSignup = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (loading) return;
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
 
-  if (password !== confirmPassword) {
-    showAlert("Passwords do not match", "error");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    await signupFirebase(email, password);
-    await logout(); // so they land on login to sign in with new account
-    showAlert("Signup successful", "success");
-    navigate("/login");
-  } catch (error: any) {
-    if (error.code === "auth/email-already-in-use") {
-      showAlert("This email is already registered. Please login.", "error");
-    } else {
-      showAlert(error.message || "Signup failed", "error");
+    if (password !== confirmPassword) {
+      showAlert("Passwords do not match", "error");
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+
+    try {
+      await signupFirebase(email, password);
+      await logout(); // so they land on login to sign in with new account
+      showAlert("Signup successful", "success");
+      navigate("/login");
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        showAlert("This email is already registered. Please login.", "error");
+      } else {
+        showAlert(error.message || "Signup failed", "error");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box
@@ -79,7 +79,7 @@ export default function Signup() {
           </Typography>
 
           <form onSubmit={handleSignup}>
-           <TextField
+            <TextField
               label="Email"
               type="email"
               fullWidth
@@ -101,17 +101,16 @@ export default function Signup() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-                    <TextField
-          label="Confirm Password"
-          type="password"
-          fullWidth
-          required
-          margin="normal"
-          autoComplete="new-password"
-          
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
+            <TextField
+              label="Confirm Password"
+              type="password"
+              fullWidth
+              required
+              margin="normal"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
 
             <Button
               type="submit"

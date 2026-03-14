@@ -81,9 +81,7 @@ export default function CalendarDashboard() {
     loadData();
   };
 
-  const personMap = Object.fromEntries(
-    persons.map((p) => [p.id, p.name])
-  );
+  const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
   const selectedTransactions = transactions.filter((t) => {
     const tDate = t.date?.seconds
@@ -120,7 +118,7 @@ export default function CalendarDashboard() {
           lineHeight: 1.2,
         }}
       >
-        {isPositive ? "+" : ""}₹{Math.abs(total).toLocaleString()}
+        {isPositive ? "" : ""}₹{Math.abs(total).toLocaleString()}
       </Typography>
     );
   };
@@ -152,7 +150,7 @@ export default function CalendarDashboard() {
       lent: 0,
       pending: 0,
       completed: 0,
-    }
+    },
   );
 
   const balance =
@@ -271,11 +269,20 @@ export default function CalendarDashboard() {
                 height: "100%",
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{ mb: 0.5 }}
+              >
                 <Box sx={{ color: card.color, display: "flex" }}>
                   {card.icon}
                 </Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={600}
+                >
                   {card.label}
                 </Typography>
               </Stack>
@@ -318,7 +325,12 @@ export default function CalendarDashboard() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 7 }}>
-          <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="subtitle1"
+            fontWeight={700}
+            color="text.primary"
+            sx={{ mb: 1.5 }}
+          >
             {date.toLocaleDateString(undefined, {
               weekday: "long",
               day: "numeric",
@@ -337,7 +349,7 @@ export default function CalendarDashboard() {
                 border: `1px dashed ${theme.palette.divider}`,
                 backgroundColor: alpha(
                   theme.palette.text.primary,
-                  theme.palette.mode === "light" ? 0.02 : 0.04
+                  theme.palette.mode === "light" ? 0.02 : 0.04,
                 ),
               }}
             >
@@ -373,7 +385,12 @@ export default function CalendarDashboard() {
                       <Typography variant="subtitle1" fontWeight={600}>
                         {personMap[t.personId] || "-"}
                       </Typography>
-                      <Stack direction="row" spacing={1.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                      <Stack
+                        direction="row"
+                        spacing={1.5}
+                        flexWrap="wrap"
+                        sx={{ mt: 0.5 }}
+                      >
                         <Typography variant="body2" color="text.secondary">
                           {capitalize(t.type)}
                         </Typography>
@@ -406,9 +423,7 @@ export default function CalendarDashboard() {
                         size="small"
                         variant="outlined"
                         startIcon={<EditRoundedIcon fontSize="small" />}
-                        onClick={() =>
-                          navigate(`/transactions/edit/${t.id}`)
-                        }
+                        onClick={() => navigate(`/transactions/edit/${t.id}`)}
                         sx={{ borderRadius: 1.5 }}
                       >
                         Edit
@@ -426,7 +441,7 @@ export default function CalendarDashboard() {
                           "&:hover": {
                             backgroundColor: alpha(
                               theme.palette.error.main,
-                              0.08
+                              0.08,
                             ),
                           },
                         }}
