@@ -8,22 +8,21 @@ import {
   alpha,
   Stack,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
 import {
   getTransactions,
   deleteTransaction,
 } from "../services/transactionService";
-
 import { getPersons } from "../services/personService";
 import { useAppSelector } from "../hooks/reduxHooks";
 import { useConfirm } from "../contexts/ConfirmContext";
-
 import { DataGrid, type GridColDef, GridToolbar } from "@mui/x-data-grid";
-
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
@@ -33,7 +32,6 @@ export default function Transactions() {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const theme = useTheme();
-
   const user = useAppSelector((state) => state.auth.user);
 
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -74,7 +72,6 @@ export default function Transactions() {
 
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
-  // Sort transactions by date (newest first)
   const sortedTransactions = [...transactions].sort((a, b) => {
     const aDate = a.date?.seconds
       ? new Date(a.date.seconds * 1000)
@@ -85,7 +82,6 @@ export default function Transactions() {
     return bDate.getTime() - aDate.getTime();
   });
 
-  // Running balance calculation (oldest first for balance column)
   const reversed = [...sortedTransactions].reverse();
   let balance = 0;
   const rows = reversed
@@ -97,23 +93,25 @@ export default function Transactions() {
       return {
         id: t.id,
         date: t.date?.seconds
-          ? new Date(t.date.seconds * 1000).toLocaleDateString(undefined, {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
+          ? new Date(t.date.seconds * 1000).toLocaleDateString("en-GB")
           : "-",
         person: personMap[t.personId] || "-",
         type: t.type,
         amount: t.amount,
         status: t.status,
         balance,
+        description: t.description ?? "",
+        completedDate: t.completedDate?.seconds
+          ? new Date(t.completedDate.seconds * 1000).toLocaleDateString("en-GB")
+          : t.status === "completed"
+          ? "—"
+          : "",
       };
     })
     .reverse();
 
   const columns: GridColDef[] = [
-    { field: "date", headerName: "Date", flex: 1, minWidth: 100 },
+    { field: "date", headerName: "Date", flex: 1, minWidth: 110 },
     { field: "person", headerName: "Person", flex: 1, minWidth: 100 },
     {
       field: "type",
@@ -161,17 +159,82 @@ export default function Transactions() {
       field: "status",
       headerName: "Status",
       flex: 1,
-      minWidth: 90,
+      minWidth: 100,
       renderCell: (params) => (
-        <Typography
-          variant="body2"
-          color={
-            params.value === "completed" ? "success.main" : "text.secondary"
-          }
-        >
-          {capitalize(params.value)}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Typography
+            variant="body2"
+            color={
+              params.value === "completed" ? "success.main" : "text.secondary"
+            }
+            fontWeight={params.value === "completed" ? 600 : 400}
+          >
+            {capitalize(params.value)}
+          </Typography>
+        </Box>
       ),
+    },
+    {
+      field: "completedDate",
+      headerName: "Completed On",
+      flex: 1,
+      minWidth: 130,
+      renderCell: (params) =>
+        params.value ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <EventAvailableRoundedIcon
+              fontSize="small"
+              sx={{ color: "success.main", fontSize: 16 }}
+            />
+            <Typography variant="body2" color="success.main" fontWeight={500}>
+              {params.value}
+            </Typography>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.disabled">
+            —
+          </Typography>
+        ),
+    },
+    {
+      field: "description",
+      headerName: "Description",
+      flex: 1.5,
+      minWidth: 160,
+      renderCell: (params) =>
+        params.value ? (
+          <Tooltip title={params.value} arrow placement="top">
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                maxWidth: "100%",
+                overflow: "hidden",
+              }}
+            >
+              <InfoOutlinedIcon
+                fontSize="small"
+                sx={{ color: "text.secondary", fontSize: 15, flexShrink: 0 }}
+              />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {params.value}
+              </Typography>
+            </Box>
+          </Tooltip>
+        ) : (
+          <Typography variant="body2" color="text.disabled">
+            —
+          </Typography>
+        ),
     },
     {
       field: "actions",
@@ -184,7 +247,6 @@ export default function Transactions() {
           <Button
             size="small"
             variant="outlined"
-            // startIcon={<EditRoundedIcon fontSize="small" />}
             onClick={() => navigate(`/transactions/edit/${params.row.id}`)}
             sx={{ borderRadius: 1.5, minWidth: 0, px: 1 }}
           >
@@ -194,7 +256,6 @@ export default function Transactions() {
             size="small"
             color="error"
             variant="outlined"
-            // startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
             onClick={() => handleDelete(params.row.id)}
             sx={{
               borderRadius: 1.5,
@@ -242,8 +303,7 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, and lent/borrowed
-            amounts.
+            View and manage all your income, expenses, and lent/borrowed amounts.
           </Typography>
         </Box>
         <Button
@@ -270,7 +330,7 @@ export default function Transactions() {
             border: `1px dashed ${theme.palette.divider}`,
             backgroundColor: alpha(
               theme.palette.text.primary,
-              theme.palette.mode === "light" ? 0.02 : 0.04,
+              theme.palette.mode === "light" ? 0.02 : 0.04
             ),
           }}
         >
@@ -314,9 +374,7 @@ export default function Transactions() {
             pageSizeOptions={[10, 25, 50]}
             sx={{
               minHeight: 400,
-              "& .MuiDataGrid-cell": {
-                py: 1.25,
-              },
+              "& .MuiDataGrid-cell": { py: 1.25 },
             }}
           />
         </Paper>

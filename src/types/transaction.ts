@@ -6,5 +6,7 @@ export interface Transaction {
   amount: number
   description?: string
   date: any
+  completedDate?: any
   createdAt: any
+  status: "pending" | "completed"
 }
