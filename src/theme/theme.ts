@@ -700,61 +700,94 @@ const getDesignTokens = (mode: PaletteMode): any => ({
         }),
       },
     },
-    MuiDataGrid: {
-      styleOverrides: {
-        root: ({ theme }: any) => ({
-          border: 'none',
-          '& .MuiDataGrid-columnHeader': {
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            fontWeight: 600,
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            fontWeight: 'bold',
-            color: 'white',
-          },
-          '& .MuiDataGrid-cell': {
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            color: theme.palette.mode === 'light' ? theme.palette.text.primary : theme.palette.text.primary,
-          },
-          '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-            outline: 'none',
-          },
-          '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
-            outline: 'none',
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: alpha(theme.palette.primary.main, 0.04),
-          },
-          '& .MuiDataGrid-row.Mui-selected': {
-            backgroundColor: alpha(theme.palette.primary.main, 0.08),
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.12),
-            },
-          },
-          '& .MuiDataGrid-footerContainer': {
-            borderTop: 'none',
-            backgroundColor: theme.palette.background.paper,
-          },
-          '& .MuiTablePagination-root': {
-            color: 'black',
-          },
-          '& .MuiDataGrid-toolbarContainer': {
-            padding: '8px 16px',
-            backgroundColor: theme.palette.background.paper,
-            '& .MuiButton-root': {
-              marginRight: 8,
-            },
-          },
-          '& .MuiDataGrid-virtualScroller': {
-            backgroundColor: theme.palette.background.paper,
-          },
-          '& .MuiDataGrid-cellContent, & .MuiDataGrid-cellCheckbox, & .MuiDataGrid-booleanCell': {
-            color: 'black',
-          },
-        }),
+   MuiDataGrid: {
+  styleOverrides: {
+    root: ({ theme }: any) => ({
+      border: 'none',
+      '& .MuiDataGrid-columnHeader': {
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.primary.contrastText,
+        fontWeight: 600,
       },
-    },
+      '& .MuiDataGrid-columnHeaderTitle': {
+        fontWeight: 'bold',
+        color: 'white',
+      },
+      '& .MuiDataGrid-cell': {
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        color: theme.palette.mode === 'light' ? theme.palette.text.primary : theme.palette.text.primary,
+      },
+      '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+        outline: 'none',
+      },
+      '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
+        outline: 'none',
+      },
+      '& .MuiDataGrid-row:hover': {
+        backgroundColor: alpha(theme.palette.primary.main, 0.04),
+      },
+      '& .MuiDataGrid-row.Mui-selected': {
+        backgroundColor: alpha(theme.palette.primary.main, 0.08),
+        '&:hover': {
+          backgroundColor: alpha(theme.palette.primary.main, 0.12),
+        },
+      },
+      '& .MuiDataGrid-footerContainer': {
+        borderTop: 'none',
+        backgroundColor: theme.palette.background.paper,
+      },
+      '& .MuiTablePagination-root': {
+        color: 'black',
+      },
+      '& .MuiDataGrid-toolbarContainer': {
+        padding: '8px 16px',
+        backgroundColor: theme.palette.background.paper,
+        '& .MuiButton-root': {
+          marginRight: 8,
+        },
+      },
+      '& .MuiDataGrid-virtualScroller': {
+        backgroundColor: theme.palette.background.paper,
+      },
+      '& .MuiDataGrid-cellContent, & .MuiDataGrid-cellCheckbox, & .MuiDataGrid-booleanCell': {
+        color: 'black',
+      },
+
+      // ── Icon button container padding & visibility ──────────────────
+      '& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer': {
+        visibility: 'visible',
+        width: 'auto',
+        paddingLeft: '15px',
+      },
+      '& .MuiDataGrid-columnHeader--sorted .MuiDataGrid-iconButtonContainer': {
+        visibility: 'visible',
+        width: 'auto',
+        paddingLeft: '15px',
+      },
+      '& .MuiDataGrid-columnHeader--filtered .MuiDataGrid-iconButtonContainer': {
+        visibility: 'visible',
+        width: 'auto',
+        paddingLeft: '15px',
+      },
+
+      // ── Sort & menu icons white on blue header ──────────────────────
+      '& .MuiDataGrid-sortIcon': {
+        color: theme.palette.primary.main,
+        opacity: 1,
+      },
+      '& .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer .MuiIconButton-root': {
+        color: 'white',
+      },
+      '& .MuiDataGrid-columnHeader .MuiDataGrid-menuIcon .MuiIconButton-root': {
+        color: 'white',
+      },
+      '& .MuiDataGrid-columnHeader .MuiDataGrid-menuIconButton': {
+        color: 'white',
+        opacity: 1,
+      },
+    }),
+  },
+},
   },
 });
 

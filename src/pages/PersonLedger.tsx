@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Divider, Chip } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
 
 import { getTransactions } from "../services/transactionService";
 import { getPersons } from "../services/personService";
@@ -32,18 +34,17 @@ export default function PersonLedger() {
     await deleteTransaction(transactionId);
     loadData();
   };
+
   useEffect(() => {
     loadData();
   }, [user]);
+
   const loadData = async () => {
     if (!user) return;
-
     const t = await getTransactions(user.uid);
     const p = await getPersons(user.uid);
-
     setTransactions(t);
     setPersons(p);
-
     if (id) {
       const person = p.find((x) => x.id === id);
       setSelectedPerson(person);
@@ -53,29 +54,20 @@ export default function PersonLedger() {
   // PERSON BALANCE LIST
   const personBalances = persons.map((person) => {
     const personTransactions = transactions.filter(
-      (t) => t.personId === person.id,
+      (t) => t.personId === person.id
     );
-
     let balance = 0;
-
     personTransactions.forEach((t) => {
       if (t.type === "income") balance += t.amount;
       if (t.type === "borrow") balance += t.amount;
-
       if (t.type === "expense") balance -= t.amount;
       if (t.type === "lent") balance -= t.amount;
     });
-
-    return {
-      id: person.id,
-      name: person.name,
-      balance,
-    };
+    return { id: person.id, name: person.name, balance };
   });
 
   const personColumns: GridColDef[] = [
     { field: "name", headerName: "Person", flex: 1 },
-
     {
       field: "balance",
       headerName: "Balance",
@@ -86,7 +78,6 @@ export default function PersonLedger() {
         </span>
       ),
     },
-
     {
       field: "actions",
       headerName: "Actions",
@@ -106,18 +97,15 @@ export default function PersonLedger() {
 
   // PERSON TRANSACTION HISTORY
   let balance = 0;
-
   const personRows = transactions
     .filter((t) => t.personId === selectedPerson?.id)
     .sort((a, b) => {
       const aDate = a.date?.seconds
         ? new Date(a.date.seconds * 1000)
         : new Date(a.date);
-
       const bDate = b.date?.seconds
         ? new Date(b.date.seconds * 1000)
         : new Date(b.date);
-
       return aDate.getTime() - bDate.getTime();
     })
     .map((t) => {
@@ -125,7 +113,6 @@ export default function PersonLedger() {
       if (t.type === "borrow") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
       if (t.type === "lent") balance -= t.amount;
-
       return {
         id: t.id,
         date: t.date?.seconds
@@ -140,16 +127,13 @@ export default function PersonLedger() {
 
   const transactionColumns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1 },
-
     { field: "type", headerName: "Type", flex: 1 },
-
     {
       field: "amount",
       headerName: "Amount",
       flex: 1,
       renderCell: (params) => `₹${params.value}`,
     },
-
     {
       field: "balance",
       headerName: "Balance",
@@ -160,9 +144,7 @@ export default function PersonLedger() {
         </span>
       ),
     },
-
     { field: "status", headerName: "Status", flex: 1 },
-
     {
       field: "actions",
       headerName: "Actions",
@@ -177,7 +159,6 @@ export default function PersonLedger() {
           >
             Edit
           </Button>
-
           <Button
             size="small"
             color="error"
@@ -190,13 +171,22 @@ export default function PersonLedger() {
     },
   ];
 
+  const currentBalance =
+    personRows.length > 0 ? personRows[personRows.length - 1].balance : 0;
+
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
+      {/* ── Person Balances List ── */}
       {!selectedPerson && (
         <>
-          <Typography variant="h4" sx={{ mb: 2 }}>
-            Person Balances
-          </Typography>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h5" fontWeight={700}>
+              Person Balances
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Overview of all your contacts and their current balances
+            </Typography>
+          </Box>
 
           <DataGrid
             rows={personBalances}
@@ -207,25 +197,104 @@ export default function PersonLedger() {
         </>
       )}
 
+      {/* ── Selected Person Ledger ── */}
       {selectedPerson && (
         <>
-          <Button sx={{ mb: 2 }} onClick={() => setSelectedPerson(null)}>
-            ← Back
-          </Button>
-
-          <Button
-            variant="contained"
-            sx={{ mb: 2 }}
-            onClick={() =>
-              navigate(`/transactions/add?personId=${selectedPerson.id}`)
-            }
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 3,
+              pb: 2.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
           >
-            Add Transaction
-          </Button>
+            {/* Left: Back + Name */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setSelectedPerson(null)}
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 500,
+                  minWidth: "auto",
+                  "&:hover": { backgroundColor: "action.hover" },
+                }}
+              >
+                Back
+              </Button>
 
-          <Typography variant="h4" sx={{ mb: 2 }}>
-            {selectedPerson.name} Ledger
-          </Typography>
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ height: 28, alignSelf: "center" }}
+              />
+
+              <Box>
+                <Typography variant="h5" fontWeight={700} lineHeight={1.2}>
+                  {selectedPerson.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Transaction Ledger
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Right: Balance chip + Add button */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              {personRows.length > 0 && (
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: currentBalance >= 0 ? "success.light" : "error.light",
+                    backgroundColor: currentBalance >= 0
+                      ? "rgba(46,125,50,0.06)"
+                      : "rgba(211,47,47,0.06)",
+                    minWidth: 120,
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Current Balance
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={700}
+                    color={currentBalance >= 0 ? "success.main" : "error.main"}
+                  >
+                    ₹{currentBalance}
+                  </Typography>
+                </Box>
+              )}
+
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() =>
+                  navigate(`/transactions/add?personId=${selectedPerson.id}`)
+                }
+                sx={{ borderRadius: 2, px: 2.5, fontWeight: 600 }}
+              >
+                Add Transaction
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Transaction count badge */}
+          <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <Chip
+              label={`${personRows.length} transaction${personRows.length !== 1 ? "s" : ""}`}
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 500 }}
+            />
+          </Box>
 
           <DataGrid
             rows={personRows}
