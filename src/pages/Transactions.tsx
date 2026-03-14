@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
-  getTransactions,
+  getTransactionsByMonth,
   deleteTransaction,
 } from "../services/transactionService";
 import { getPersons } from "../services/personService";
@@ -72,13 +72,14 @@ export default function Transactions() {
     });
   };
 
+  // ── Fetch only selected month from Firestore ───────────────────────
   const loadData = async () => {
     if (!user) return;
     setLoading(true);
     try {
       const [personsData, transactionData] = await Promise.all([
         getPersons(user.uid),
-        getTransactions(user.uid),
+        getTransactionsByMonth(user.uid, selectedMonth.year, selectedMonth.month),
       ]);
       setPersons(personsData);
       setTransactions(transactionData);
@@ -87,9 +88,10 @@ export default function Transactions() {
     }
   };
 
+  // ── Reload whenever user or selected month changes ─────────────────
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [user, selectedMonth.month, selectedMonth.year]);
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -106,7 +108,7 @@ export default function Transactions() {
 
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
-  // ── Sort all transactions by date descending ───────────────────────
+  // ── Firestore already returns this month only, just sort ───────────
   const sortedTransactions = [...transactions].sort((a, b) => {
     const aDate = a.date?.seconds
       ? new Date(a.date.seconds * 1000)
@@ -117,26 +119,15 @@ export default function Transactions() {
     return bDate.getTime() - aDate.getTime();
   });
 
-  // ── Filter by selected month ───────────────────────────────────────
-  const filteredTransactions = sortedTransactions.filter((t) => {
-    const d = t.date?.seconds
-      ? new Date(t.date.seconds * 1000)
-      : new Date(t.date);
-    return (
-      d.getMonth() === selectedMonth.month &&
-      d.getFullYear() === selectedMonth.year
-    );
-  });
-
   // ── Running balance (oldest → newest, then reverse for display) ────
-  const reversed = [...filteredTransactions].reverse();
+  const reversed = [...sortedTransactions].reverse();
   let balance = 0;
   const rows = reversed
     .map((t) => {
-      if (t.type === "income") balance += t.amount;
-      if (t.type === "expense") balance -= t.amount;
-      if (t.type === "salary") balance -= t.amount;
-      if (t.type === "advance") balance += t.amount;
+      if (t.type === "income")     balance += t.amount;
+      if (t.type === "expense")    balance -= t.amount;
+      if (t.type === "salary")     balance -= t.amount;
+      if (t.type === "advance")    balance += t.amount;
       if (t.type === "settlement") balance += t.amount;
       return {
         id: t.id,
@@ -158,16 +149,16 @@ export default function Transactions() {
     })
     .reverse();
 
-  // ── Month summary chips ────────────────────────────────────────────
-  const monthSummary = filteredTransactions.reduce(
+  // ── Month summary ──────────────────────────────────────────────────
+  const monthSummary = sortedTransactions.reduce(
     (acc, t) => {
-      if (t.type === "income") acc.income += t.amount;
+      if (t.type === "income")  acc.income  += t.amount;
       if (t.type === "expense") acc.expense += t.amount;
-      if (t.type === "salary") acc.salary += t.amount;
+      if (t.type === "salary")  acc.salary  += t.amount;
       if (t.type === "advance") acc.advance += t.amount;
       return acc;
     },
-    { income: 0, expense: 0, advance: 0 , salary:0 }
+    { income: 0, expense: 0, salary: 0, advance: 0 }
   );
 
   const columns: GridColDef[] = [
@@ -206,6 +197,22 @@ export default function Transactions() {
         <Typography
           variant="body2"
           fontWeight={600}
+          sx={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          ₹{Number(params.value).toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      field: "balance",
+      headerName: "Balance",
+      flex: 1,
+      minWidth: 100,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          fontWeight={600}
+          color={params.value >= 0 ? "success.main" : "error.main"}
           sx={{ fontVariantNumeric: "tabular-nums" }}
         >
           ₹{Number(params.value).toLocaleString()}
@@ -357,7 +364,7 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, salary and advanceed amounts.
+            View and manage all your income, expenses, salary and advanced amounts.
           </Typography>
         </Box>
 
@@ -373,11 +380,7 @@ export default function Transactions() {
               overflow: "hidden",
             }}
           >
-            <IconButton
-              size="small"
-              onClick={prevMonth}
-              sx={{ borderRadius: 0, px: 1 }}
-            >
+            <IconButton size="small" onClick={prevMonth} sx={{ borderRadius: 0, px: 1 }}>
               <ChevronLeftRoundedIcon />
             </IconButton>
 
@@ -387,34 +390,24 @@ export default function Transactions() {
               spacing={0.5}
               sx={{ px: 1.5, minWidth: 170, justifyContent: "center" }}
             >
-              <CalendarTodayRoundedIcon
-                sx={{ fontSize: 14, color: "text.secondary" }}
-              />
+              <CalendarTodayRoundedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
               <Typography variant="body2" fontWeight={600}>
                 {monthLabel}
               </Typography>
             </Stack>
 
-            <IconButton
-              size="small"
-              onClick={nextMonth}
-              sx={{ borderRadius: 0, px: 1 }}
-            >
+            <IconButton size="small" onClick={nextMonth} sx={{ borderRadius: 0, px: 1 }}>
               <ChevronRightRoundedIcon />
             </IconButton>
           </Paper>
 
-          {/* Jump back to current month */}
           {!isCurrentMonth && (
             <Button
               size="small"
               variant="outlined"
               onClick={() => {
                 const now = new Date();
-                setSelectedMonth({
-                  month: now.getMonth(),
-                  year: now.getFullYear(),
-                });
+                setSelectedMonth({ month: now.getMonth(), year: now.getFullYear() });
               }}
               sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
             >
@@ -434,34 +427,35 @@ export default function Transactions() {
       </Stack>
 
       {/* ── Month summary chips ── */}
-      {filteredTransactions.length > 0 && (
-        <Stack
-          direction="row"
-          spacing={1}
-          flexWrap="wrap"
-          sx={{ mb: 2.5, gap: 1 }}
-        >
-          <Chip
-            label={`Income ₹${monthSummary.income.toLocaleString()}`}
-            size="small"
-            color="success"
-            variant="outlined"
-            sx={{ fontWeight: 600 }}
-          />
-          <Chip
-            label={`Expense ₹${monthSummary.expense.toLocaleString()}`}
-            size="small"
-            color="error"
-            variant="outlined"
-            sx={{ fontWeight: 600 }}
-          />
-           <Chip
-            label={`Salary ₹${monthSummary.salary.toLocaleString()}`}
-            size="small"
-            color="error"
-            variant="outlined"
-            sx={{ fontWeight: 600 }}
-          />
+      {sortedTransactions.length > 0 && (
+        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2.5, gap: 1 }}>
+          {monthSummary.income > 0 && (
+            <Chip
+              label={`Income ₹${monthSummary.income.toLocaleString()}`}
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          {monthSummary.expense > 0 && (
+            <Chip
+              label={`Expense ₹${monthSummary.expense.toLocaleString()}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          {monthSummary.salary > 0 && (
+            <Chip
+              label={`Salary ₹${monthSummary.salary.toLocaleString()}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
           {monthSummary.advance > 0 && (
             <Chip
               label={`Advance ₹${monthSummary.advance.toLocaleString()}`}
@@ -472,7 +466,7 @@ export default function Transactions() {
             />
           )}
           <Chip
-            label={`${filteredTransactions.length} transactions`}
+            label={`${sortedTransactions.length} transactions`}
             size="small"
             variant="outlined"
             sx={{ fontWeight: 500 }}
@@ -495,9 +489,7 @@ export default function Transactions() {
             ),
           }}
         >
-          <ReceiptLongRoundedIcon
-            sx={{ fontSize: 56, color: "text.disabled", mb: 1 }}
-          />
+          <ReceiptLongRoundedIcon sx={{ fontSize: 56, color: "text.disabled", mb: 1 }} />
           <Typography color="text.secondary" variant="body1" gutterBottom>
             No transactions in {monthLabel}
           </Typography>
