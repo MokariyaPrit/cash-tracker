@@ -104,7 +104,7 @@ export default function CalendarDashboard() {
     dailyTransactions.forEach((t) => {
       if (t.type === "income" || t.type === "borrow") total += t.amount;
       if (t.type === "expense") total -= t.amount;
-      if (t.type === "settlement") total = 0
+      if (t.type === "settlement") total -= t.amount
     });
 
     const isPositive = total >= 0;
