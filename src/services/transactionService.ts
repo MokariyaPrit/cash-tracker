@@ -59,37 +59,65 @@ export const getTransactionsByPerson = async (
   userId: string,
   personId: string,
   year?: number,
-  month?: number  // 0-indexed
+  month?: number
 ) => {
-  let q
+  try {
+    let q
+    if (year !== undefined && month !== undefined) {
+      const start = Timestamp.fromDate(new Date(year, month, 1, 0, 0, 0, 0))
+      const end = Timestamp.fromDate(new Date(year, month + 1, 0, 23, 59, 59, 999))
+      q = query(
+        collection(db, "transactions"),
+        where("userId", "==", userId),
+        where("personId", "==", personId),
+        where("date", ">=", start),
+        where("date", "<=", end),
+        orderBy("date", "asc")
+      )
+    } else {
+      q = query(
+        collection(db, "transactions"),
+        where("userId", "==", userId),
+        where("personId", "==", personId),
+        orderBy("date", "asc")
+      )
+    }
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 
-  if (year !== undefined && month !== undefined) {
-    const start = Timestamp.fromDate(new Date(year, month, 1, 0, 0, 0, 0))
-    const end = Timestamp.fromDate(new Date(year, month + 1, 0, 23, 59, 59, 999))
+  } catch (error: any) {
+    console.error("Index missing — click this URL to create it:", error)
 
-    q = query(
+    // ── Fallback: fetch without date filter, filter in JS ──
+    const fallback = query(
       collection(db, "transactions"),
       where("userId", "==", userId),
       where("personId", "==", personId),
-      where("date", ">=", start),
-      where("date", "<=", end),
-      orderBy("date", "asc")
     )
-  } else {
-    // full history — no date filter
-    q = query(
-      collection(db, "transactions"),
-      where("userId", "==", userId),
-      where("personId", "==", personId),
-      orderBy("date", "asc")
-    )
+    const snapshot = await getDocs(fallback)
+    const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+
+    if (year !== undefined && month !== undefined) {
+      return all
+        .filter((t: any) => {
+          const d = t.date?.seconds
+            ? new Date(t.date.seconds * 1000)
+            : new Date(t.date)
+          return d.getMonth() === month && d.getFullYear() === year
+        })
+        .sort((a: any, b: any) => {
+          const aDate = a.date?.seconds ? new Date(a.date.seconds * 1000) : new Date(a.date)
+          const bDate = b.date?.seconds ? new Date(b.date.seconds * 1000) : new Date(b.date)
+          return aDate.getTime() - bDate.getTime()
+        })
+    }
+
+    return all.sort((a: any, b: any) => {
+      const aDate = a.date?.seconds ? new Date(a.date.seconds * 1000) : new Date(a.date)
+      const bDate = b.date?.seconds ? new Date(b.date.seconds * 1000) : new Date(b.date)
+      return aDate.getTime() - bDate.getTime()
+    })
   }
-
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }))
 }
 
 export const updateTransaction = async (id: string, data: any) => {
