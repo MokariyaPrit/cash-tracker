@@ -102,7 +102,7 @@ export default function CalendarDashboard() {
 
     let total = 0;
     dailyTransactions.forEach((t) => {
-      if (t.type === "income" || t.type === "borrow") total += t.amount;
+      if (t.type === "income" || t.type === "advance") total += t.amount;
       if (t.type === "expense") total -= t.amount;
       if (t.type === "settlement") total -= t.amount
     });
@@ -138,7 +138,7 @@ export default function CalendarDashboard() {
   (acc, t) => {
     if (t.type === "income") acc.income += t.amount;
     if (t.type === "expense") acc.expense += t.amount;
-    if (t.type === "borrow") acc.borrow += t.amount;
+    if (t.type === "advance") acc.advance += t.amount;
     if (t.type === "settlement") acc.settlement += t.amount; 
     if (t.status === "pending") acc.pending += t.amount;
     if (t.status === "completed") acc.completed += t.amount;
@@ -147,8 +147,7 @@ export default function CalendarDashboard() {
   {
     income: 0,
     expense: 0,
-    borrow: 0,
-    lent: 0,
+    advance: 0,
     settlement: 0,  
     pending: 0,
     completed: 0,
@@ -156,7 +155,7 @@ export default function CalendarDashboard() {
 );
 
   const balance =
-    summary.income + summary.borrow - summary.expense + summary.settlement;
+    summary.income + summary.advance - summary.expense + summary.settlement;
 
   const summaryCards = [
     {
@@ -172,8 +171,8 @@ export default function CalendarDashboard() {
       icon: <TrendingDownRoundedIcon fontSize="small" />,
     },
     {
-      label: "Borrow",
-      value: summary.borrow,
+      label: "Advance",
+      value: summary.advance,
       color: "info.main" as const,
       icon: <SwapHorizRoundedIcon fontSize="small" />,
     },
@@ -399,7 +398,7 @@ export default function CalendarDashboard() {
                           variant="body2"
                           fontWeight={600}
                           color={
-                            t.type === "income" || t.type === "borrow"
+                            t.type === "income" || t.type === "advance"
                               ? "success.main"
                               : "error.main"
                           }

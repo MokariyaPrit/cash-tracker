@@ -137,7 +137,7 @@ export default function PersonLedger() {
     let balance = 0;
     personTransactions.forEach((t) => {
       if (t.type === "income") balance += t.amount;
-      if (t.type === "borrow") balance += t.amount;
+      if (t.type === "advance") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
       if (t.type === "settlement") balance += t.amount
     });
@@ -188,7 +188,7 @@ export default function PersonLedger() {
     })
     .map((t) => {
       if (t.type === "income") balance += t.amount;
-      if (t.type === "borrow") balance += t.amount;
+      if (t.type === "advance") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
       // settlement resets balance to 0 — don't add/subtract, just reset
        if (t.type === "settlement") balance = 0;

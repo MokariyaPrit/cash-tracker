@@ -135,8 +135,7 @@ export default function Transactions() {
     .map((t) => {
       if (t.type === "income") balance += t.amount;
       if (t.type === "expense") balance -= t.amount;
-      if (t.type === "lent") balance -= t.amount;
-      if (t.type === "borrow") balance += t.amount;
+      if (t.type === "advance") balance += t.amount;
       if (t.type === "settlement") balance = 0;
       return {
         id: t.id,
@@ -163,11 +162,10 @@ export default function Transactions() {
     (acc, t) => {
       if (t.type === "income") acc.income += t.amount;
       if (t.type === "expense") acc.expense += t.amount;
-      if (t.type === "lent") acc.lent += t.amount;
-      if (t.type === "borrow") acc.borrow += t.amount;
+      if (t.type === "advance") acc.advance += t.amount;
       return acc;
     },
-    { income: 0, expense: 0, lent: 0, borrow: 0 }
+    { income: 0, expense: 0, advance: 0 }
   );
 
   const columns: GridColDef[] = [
@@ -206,22 +204,6 @@ export default function Transactions() {
         <Typography
           variant="body2"
           fontWeight={600}
-          sx={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          ₹{Number(params.value).toLocaleString()}
-        </Typography>
-      ),
-    },
-    {
-      field: "balance",
-      headerName: "Balance",
-      flex: 1,
-      minWidth: 100,
-      renderCell: (params) => (
-        <Typography
-          variant="body2"
-          fontWeight={600}
-          color={params.value >= 0 ? "success.main" : "error.main"}
           sx={{ fontVariantNumeric: "tabular-nums" }}
         >
           ₹{Number(params.value).toLocaleString()}
@@ -373,7 +355,7 @@ export default function Transactions() {
             Transactions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            View and manage all your income, expenses, and borrowed amounts.
+            View and manage all your income, expenses, and advanceed amounts.
           </Typography>
         </Box>
 
@@ -471,18 +453,9 @@ export default function Transactions() {
             variant="outlined"
             sx={{ fontWeight: 600 }}
           />
-          {monthSummary.lent > 0 && (
+          {monthSummary.advance > 0 && (
             <Chip
-              label={`Lent ₹${monthSummary.lent.toLocaleString()}`}
-              size="small"
-              color="warning"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
-            />
-          )}
-          {monthSummary.borrow > 0 && (
-            <Chip
-              label={`Borrow ₹${monthSummary.borrow.toLocaleString()}`}
+              label={`Advance ₹${monthSummary.advance.toLocaleString()}`}
               size="small"
               color="info"
               variant="outlined"

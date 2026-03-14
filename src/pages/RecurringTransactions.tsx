@@ -42,8 +42,13 @@ import { useAlert } from "../contexts/AlertContext";
 const typeOptions = [
   { value: "expense", label: "Expense" },
   { value: "income", label: "Income" },
-  { value: "lent", label: "Lent" },
-  { value: "borrow", label: "Borrow" },
+  { value: "advance", label: "Advance" },
+];
+
+const monthNames = [
+  "January", "February", "March", "April",
+  "May", "June", "July", "August",
+  "September", "October", "November", "December",
 ];
 
 const ordinal = (n: number) => {
@@ -67,6 +72,14 @@ const menuProps = {
   },
 };
 
+// ── now defined at module level so it's available everywhere ────────
+const now = new Date();
+
+const yearOptions = Array.from(
+  { length: 5 },
+  (_, i) => now.getFullYear() - 2 + i
+);
+
 export default function RecurringTransactions() {
   const theme = useTheme();
   const user = useAppSelector((state) => state.auth.user);
@@ -88,7 +101,21 @@ export default function RecurringTransactions() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [creating, setCreating] = useState(false);
 
+  // ── Preview month/year selection ──
+  const [previewMonth, setPreviewMonth] = useState(now.getMonth());
+  const [previewYear, setPreviewYear] = useState(now.getFullYear());
+
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
+
+  const previewMonthLabel = new Date(previewYear, previewMonth).toLocaleString(
+    "default",
+    { month: "long", year: "numeric" }
+  );
+
+  const currentMonthLabel = now.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
 
   const loadData = async () => {
     if (!user) return;
@@ -109,32 +136,33 @@ export default function RecurringTransactions() {
     loadData();
   }, [user]);
 
-  // ── Open preview: pre-select all ──
+  // ── Open preview: pre-select all, reset to current month ──
   const openPreview = () => {
     const allSelected: Record<string, boolean> = {};
     templates.forEach((t) => {
       allSelected[t.id] = true;
     });
     setSelected(allSelected);
+    setPreviewMonth(now.getMonth());
+    setPreviewYear(now.getFullYear());
     setPreviewOpen(true);
   };
 
-  // ── Create selected transactions for this month ──
+  // ── Create selected transactions for chosen month/year ──
   const handleCreateSelected = async () => {
     if (!user) return;
     setCreating(true);
-    const now = new Date();
     const toCreate = templates.filter((t) => selected[t.id]);
 
     try {
       await Promise.all(
         toCreate.map((t) => {
           const txDate = new Date(
-            now.getFullYear(),
-            now.getMonth(),
+            previewYear,
+            previewMonth,
             Math.min(
               t.dayOfMonth,
-              new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+              new Date(previewYear, previewMonth + 1, 0).getDate()
             )
           );
           return addTransaction({
@@ -154,10 +182,7 @@ export default function RecurringTransactions() {
       showAlert(
         `${toCreate.length} recurring transaction${
           toCreate.length !== 1 ? "s" : ""
-        } created for ${now.toLocaleString("default", {
-          month: "long",
-          year: "numeric",
-        })}`,
+        } created for ${previewMonthLabel}`,
         "success"
       );
       setPreviewOpen(false);
@@ -220,18 +245,15 @@ export default function RecurringTransactions() {
     loadData();
   };
 
-  const now = new Date();
-  const currentMonthLabel = now.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
-
   const inputSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
       backgroundColor: theme.palette.background.paper,
     },
   };
+
+  const isCurrentMonth =
+    previewMonth === now.getMonth() && previewYear === now.getFullYear();
 
   return (
     <Box sx={{ maxWidth: 800, mx: "auto", px: { xs: 2, sm: 3 }, py: 3 }}>
@@ -251,8 +273,7 @@ export default function RecurringTransactions() {
             </Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage monthly templates and create this month's transactions in one
-            click.
+            Manage monthly templates and create this month's transactions in one click.
           </Typography>
         </Box>
 
@@ -345,44 +366,28 @@ export default function RecurringTransactions() {
                 spacing={1.5}
               >
                 <Box>
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    sx={{ mb: 0.5 }}
-                  >
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                     <Typography variant="subtitle1" fontWeight={700}>
                       {personMap[t.personId] || "Unknown"}
                     </Typography>
                     <Chip
-                      label={
-                        t.type.charAt(0).toUpperCase() + t.type.slice(1)
-                      }
+                      label={t.type.charAt(0).toUpperCase() + t.type.slice(1)}
                       size="small"
                       variant="outlined"
                       color={
-                        t.type === "income"
-                          ? "success"
-                          : t.type === "expense"
-                          ? "error"
-                          : t.type === "lent"
-                          ? "warning"
-                          : "info"
+                        t.type === "income" ? "success"
+                        : t.type === "expense" ? "error"
+                        : "info"
                       }
                       sx={{ fontWeight: 600, fontSize: 11 }}
                     />
                   </Stack>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography
-                      variant="h6"
-                      fontWeight={700}
-                      color="primary.main"
-                    >
+                    <Typography variant="h6" fontWeight={700} color="primary.main">
                       ₹{Number(t.amount).toLocaleString()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Every month on the{" "}
-                      <strong>{ordinal(t.dayOfMonth)}</strong>
+                      Every month on the <strong>{ordinal(t.dayOfMonth)}</strong>
                     </Typography>
                   </Stack>
                   {t.description && (
@@ -411,17 +416,11 @@ export default function RecurringTransactions() {
                       size="small"
                       color="error"
                       onClick={() =>
-                        handleDelete(
-                          t.id,
-                          `${personMap[t.personId]} ₹${t.amount}`
-                        )
+                        handleDelete(t.id, `${personMap[t.personId]} ₹${t.amount}`)
                       }
                       sx={{
                         "&:hover": {
-                          backgroundColor: alpha(
-                            theme.palette.error.main,
-                            0.08
-                          ),
+                          backgroundColor: alpha(theme.palette.error.main, 0.08),
                         },
                       }}
                     >
@@ -441,96 +440,68 @@ export default function RecurringTransactions() {
         onClose={() => !saving && setFormOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, overflow: "visible" } }} // 👈 overflow visible helps dropdown
+        PaperProps={{ sx: { borderRadius: 3, overflow: "visible" } }}
       >
-      {/* ── Add / Edit Template Dialog title ── */}
-<DialogTitle
-  sx={{
-    pb: 1,
-    fontWeight: 700,
-    fontSize: "1.25rem",   // same as h6
-  }}
->
-  {editingId ? "Edit Template" : "New Recurring Template"}
-</DialogTitle>
+        <DialogTitle sx={{ pb: 1, fontWeight: 700, fontSize: "1.25rem" }}>
+          {editingId ? "Edit Template" : "New Recurring Template"}
+        </DialogTitle>
 
-        <DialogContent sx={{ overflow: "visible" }}> // 👈 overflow visible
+        <DialogContent sx={{ overflow: "visible" }}>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
-
-            {/* ── Person dropdown ── */}
+            {/* Person */}
             <TextField
               select
               label="Person"
               size="small"
               fullWidth
               value={form.personId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, personId: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, personId: e.target.value }))}
               sx={inputSx}
-              SelectProps={{
-                displayEmpty: true,
-                ...menuProps, // 👈 z-index fix
-              }}
+              SelectProps={{ displayEmpty: true, ...menuProps }}
               InputLabelProps={{ shrink: true }}
             >
-              <MenuItem value="">
-                <em>Select person</em>
-              </MenuItem>
+              <MenuItem value=""><em>Select person</em></MenuItem>
               {persons.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name}
-                </MenuItem>
+                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
               ))}
             </TextField>
 
-            {/* ── Amount ── */}
+            {/* Amount */}
             <TextField
               label="Amount"
               type="number"
               size="small"
               fullWidth
               value={form.amount}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, amount: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               inputProps={{ min: 0 }}
               sx={inputSx}
               InputProps={{
                 startAdornment: (
-                  <Typography
-                    component="span"
-                    sx={{ mr: 1, color: "text.secondary", fontWeight: 600 }}
-                  >
+                  <Typography component="span" sx={{ mr: 1, color: "text.secondary", fontWeight: 600 }}>
                     ₹
                   </Typography>
                 ),
               }}
             />
 
-            {/* ── Type dropdown ── */}
+            {/* Type */}
             <TextField
               select
               label="Type"
               size="small"
               fullWidth
               value={form.type}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, type: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
               sx={inputSx}
-              SelectProps={{
-                ...menuProps, // 👈 z-index fix
-              }}
+              SelectProps={{ ...menuProps }}
             >
               {typeOptions.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </MenuItem>
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
               ))}
             </TextField>
 
-            {/* ── Day of Month ── */}
+            {/* Day of Month */}
             <TextField
               label="Day of Month"
               type="number"
@@ -540,20 +511,15 @@ export default function RecurringTransactions() {
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
-                  dayOfMonth: Math.min(
-                    28,
-                    Math.max(1, Number(e.target.value))
-                  ),
+                  dayOfMonth: Math.min(28, Math.max(1, Number(e.target.value))),
                 }))
               }
               inputProps={{ min: 1, max: 28 }}
-              helperText={`Transaction will be dated the ${ordinal(
-                Number(form.dayOfMonth)
-              )} of each month (max 28 to work in all months)`}
+              helperText={`Transaction will be dated the ${ordinal(Number(form.dayOfMonth))} of each month (max 28 to work in all months)`}
               sx={inputSx}
             />
 
-            {/* ── Description ── */}
+            {/* Description */}
             <TextField
               label="Description (optional)"
               placeholder="e.g. Monthly salary, Office rent…"
@@ -562,9 +528,7 @@ export default function RecurringTransactions() {
               multiline
               minRows={2}
               value={form.description}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, description: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               sx={inputSx}
             />
           </Stack>
@@ -584,11 +548,7 @@ export default function RecurringTransactions() {
             variant="contained"
             onClick={handleSave}
             disabled={saving || !form.personId || !form.amount}
-            startIcon={
-              saving ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : undefined
-            }
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
             sx={{ borderRadius: 2, minWidth: 100 }}
           >
             {saving ? "Saving…" : editingId ? "Update" : "Add"}
@@ -602,37 +562,86 @@ export default function RecurringTransactions() {
         onClose={() => !creating && setPreviewOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ sx: { borderRadius: 3, overflow: "visible" } }}
       >
-       {/* ── Preview Dialog title ── */}
-<DialogTitle sx={{ pb: 1 }}>
-  <Stack direction="row" alignItems="center" spacing={1}>
-    <PlaylistAddCheckRoundedIcon color="primary" />
-    <Box>
-      {/* 👇 use Box with sx instead of Typography variant="h6" */}
-      <Box sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.4 }}>
-        Create for {currentMonthLabel}
-      </Box>
-      <Typography variant="caption" color="text.secondary">
-        All templates are selected. Uncheck any you want to skip.
-      </Typography>
-    </Box>
-  </Stack>
-</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
+          {/* Title row */}
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <PlaylistAddCheckRoundedIcon color="primary" />
+            <Box sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.4 }}>
+              Create Recurring Transactions
+            </Box>
+          </Stack>
 
-        <DialogContent>
+          {/* Month / Year picker */}
+          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+            {/* Month */}
+            <TextField
+              select
+              size="small"
+              label="Month"
+              value={previewMonth}
+              onChange={(e) => setPreviewMonth(Number(e.target.value))}
+              sx={{
+                minWidth: 140,
+                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+              }}
+              SelectProps={{ ...menuProps }}
+            >
+              {monthNames.map((m, i) => (
+                <MenuItem key={i} value={i}>{m}</MenuItem>
+              ))}
+            </TextField>
+
+            {/* Year */}
+            <TextField
+              select
+              size="small"
+              label="Year"
+              value={previewYear}
+              onChange={(e) => setPreviewYear(Number(e.target.value))}
+              sx={{
+                minWidth: 100,
+                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+              }}
+              SelectProps={{ ...menuProps }}
+            >
+              {yearOptions.map((y) => (
+                <MenuItem key={y} value={y}>{y}</MenuItem>
+              ))}
+            </TextField>
+
+            {/* Jump to current month */}
+            {!isCurrentMonth && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setPreviewMonth(now.getMonth());
+                  setPreviewYear(now.getFullYear());
+                }}
+                sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
+              >
+                This Month
+              </Button>
+            )}
+          </Stack>
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            Creating for <strong>{previewMonthLabel}</strong> — uncheck any you want to skip.
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ overflow: "visible" }}>
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             {templates.map((t) => {
+              // ── use previewYear/previewMonth for date preview ──
               const txDate = new Date(
-                now.getFullYear(),
-                now.getMonth(),
+                previewYear,
+                previewMonth,
                 Math.min(
                   t.dayOfMonth,
-                  new Date(
-                    now.getFullYear(),
-                    now.getMonth() + 1,
-                    0
-                  ).getDate()
+                  new Date(previewYear, previewMonth + 1, 0).getDate()
                 )
               );
               return (
@@ -653,18 +662,13 @@ export default function RecurringTransactions() {
                     transition: "all 0.15s",
                     cursor: "pointer",
                   }}
-                  onClick={() =>
-                    setSelected((s) => ({ ...s, [t.id]: !s[t.id] }))
-                  }
+                  onClick={() => setSelected((s) => ({ ...s, [t.id]: !s[t.id] }))}
                 >
                   <Stack direction="row" alignItems="center" spacing={1.5}>
                     <Checkbox
                       checked={!!selected[t.id]}
                       onChange={(e) =>
-                        setSelected((s) => ({
-                          ...s,
-                          [t.id]: e.target.checked,
-                        }))
+                        setSelected((s) => ({ ...s, [t.id]: e.target.checked }))
                       }
                       onClick={(e) => e.stopPropagation()}
                       size="small"
@@ -676,34 +680,19 @@ export default function RecurringTransactions() {
                           {personMap[t.personId] || "Unknown"}
                         </Typography>
                         <Chip
-                          label={
-                            t.type.charAt(0).toUpperCase() + t.type.slice(1)
-                          }
+                          label={t.type.charAt(0).toUpperCase() + t.type.slice(1)}
                           size="small"
                           variant="outlined"
                           color={
-                            t.type === "income"
-                              ? "success"
-                              : t.type === "expense"
-                              ? "error"
-                              : t.type === "lent"
-                              ? "warning"
-                              : "info"
+                            t.type === "income" ? "success"
+                            : t.type === "expense" ? "error"
+                            : "info"
                           }
                           sx={{ fontSize: 10, height: 20 }}
                         />
                       </Stack>
-                      <Stack
-                        direction="row"
-                        spacing={1.5}
-                        alignItems="center"
-                        sx={{ mt: 0.25 }}
-                      >
-                        <Typography
-                          variant="body2"
-                          fontWeight={700}
-                          color="primary.main"
-                        >
+                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.25 }}>
+                        <Typography variant="body2" fontWeight={700} color="primary.main">
                           ₹{Number(t.amount).toLocaleString()}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -721,7 +710,7 @@ export default function RecurringTransactions() {
               );
             })}
 
-            {/* ── Summary footer ── */}
+            {/* Summary footer */}
             <Box
               sx={{
                 mt: 1,
@@ -732,14 +721,10 @@ export default function RecurringTransactions() {
               }}
             >
               <Typography variant="body2" color="text.secondary">
+                <strong>{Object.values(selected).filter(Boolean).length}</strong> of{" "}
+                <strong>{templates.length}</strong> templates selected · Total:{" "}
                 <strong>
-                  {Object.values(selected).filter(Boolean).length}
-                </strong>{" "}
-                of <strong>{templates.length}</strong> templates selected ·
-                Total:{" "}
-                <strong>
-                  ₹
-                  {templates
+                  ₹{templates
                     .filter((t) => selected[t.id])
                     .reduce((sum, t) => sum + Number(t.amount), 0)
                     .toLocaleString()}
@@ -773,10 +758,7 @@ export default function RecurringTransactions() {
           <Button
             variant="contained"
             onClick={handleCreateSelected}
-            disabled={
-              creating ||
-              Object.values(selected).filter(Boolean).length === 0
-            }
+            disabled={creating || Object.values(selected).filter(Boolean).length === 0}
             startIcon={
               creating ? (
                 <CircularProgress size={16} color="inherit" />
@@ -788,9 +770,7 @@ export default function RecurringTransactions() {
           >
             {creating
               ? "Creating…"
-              : `Create ${
-                  Object.values(selected).filter(Boolean).length
-                } Transactions`}
+              : `Create ${Object.values(selected).filter(Boolean).length} for ${monthNames[previewMonth]}`}
           </Button>
         </DialogActions>
       </Dialog>
