@@ -156,8 +156,6 @@ export default function Transactions() {
     { income: 0, expense: 0, salary: 0, advance: 0 }
   );
 
-  const netFlow = monthSummary.income + monthSummary.advance
-    - monthSummary.expense - monthSummary.salary;
 
   const columns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1, minWidth: 110 },
