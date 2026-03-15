@@ -34,7 +34,8 @@ export default function Login() {
     try {
       const res = await login(email, password);
 
-      dispatch(setUser(res.user));
+      // dispatch(setUser(res.user));
+dispatch(setUser({ uid: res.user.uid, email: res.user.email }));
 
       navigate("/Calendar", { replace: true });
     } catch (error: any) {
