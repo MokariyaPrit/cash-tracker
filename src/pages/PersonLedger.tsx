@@ -44,11 +44,14 @@ import { useConfirm } from "../contexts/ConfirmContext";
 import { useAlert } from "../contexts/AlertContext";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { type Dayjs } from "dayjs";
+import { resolveTransactionMode, type TransactionMode } from "../types/transaction";
 
 const monthNames = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December",
 ];
+
+type ModeFilter = "all" | TransactionMode;
 
 export default function PersonLedger() {
   const user = useAppSelector((state) => state.auth.user);
@@ -69,6 +72,7 @@ export default function PersonLedger() {
   const [settling, setSettling] = useState(false);
 
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
   const [ledgerMonth, setLedgerMonth] = useState(new Date().getMonth());
   const [ledgerYear, setLedgerYear] = useState(new Date().getFullYear());
 
@@ -109,6 +113,37 @@ export default function PersonLedger() {
     }
   }, [selectedPerson, showAllHistory, ledgerMonth, ledgerYear]);
 
+  const filteredPersonTransactions = personTransactions.filter((t) => {
+    if (modeFilter === "all") return true;
+    return resolveTransactionMode(t.mode) === modeFilter;
+  });
+
+  // ── Person transaction rows ────────────────────────────────────────
+  let balance = 0;
+  const personRows = filteredPersonTransactions.map((t) => {
+    if (t.type === "income")     balance += t.amount;
+    if (t.type === "advance")    balance += t.amount;
+    if (t.type === "expense")    balance -= t.amount;
+    if (t.type === "salary")     balance -= t.amount;
+    if (t.type === "settlement") balance += t.amount;
+    return {
+      id: t.id,
+      date: t.date?.seconds
+        ? new Date(t.date.seconds * 1000).toLocaleDateString("en-GB")
+        : "",
+      mode: resolveTransactionMode(t.mode),
+      type: t.type,
+      amount: t.amount,
+      status: t.status,
+      balance,
+      description: t.description ?? "",
+      isSettlement: t.isSettlement ?? false,
+    };
+  });
+
+  const currentBalance = personRows.length > 0 ? personRows[personRows.length - 1].balance : 0;
+  const pendingCount = filteredPersonTransactions.filter((t) => t.status === "pending").length;
+
   const handleDelete = async (transactionId: string) => {
     const ok = await confirm({
       title: "Delete transaction?",
@@ -130,6 +165,7 @@ export default function PersonLedger() {
       await addTransaction({
         userId: user.uid,
         personId: selectedPerson.id,
+        mode: "regular",
         type: "settlement",
         amount: Math.abs(currentBalance),
         description: settleDescription.trim()
@@ -142,7 +178,7 @@ export default function PersonLedger() {
         isSettlement: true,
       });
 
-      const pendingIds = personTransactions
+      const pendingIds = filteredPersonTransactions
         .filter((t) => t.status === "pending")
         .map((t) => t.id);
 
@@ -202,30 +238,22 @@ export default function PersonLedger() {
     },
   ];
 
-  // ── Person transaction rows ────────────────────────────────────────
-  let balance = 0;
-  const personRows = personTransactions.map((t) => {
-    if (t.type === "income")     balance += t.amount;
-    if (t.type === "advance")    balance += t.amount;
-    if (t.type === "expense")    balance -= t.amount;
-    if (t.type === "salary")     balance -= t.amount;
-    if (t.type === "settlement") balance += t.amount;
-    return {
-      id: t.id,
-      date: t.date?.seconds
-        ? new Date(t.date.seconds * 1000).toLocaleDateString("en-GB")
-        : "",
-      type: t.type,
-      amount: t.amount,
-      status: t.status,
-      balance,
-      description: t.description ?? "",
-      isSettlement: t.isSettlement ?? false,
-    };
-  });
-
   const transactionColumns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1 },
+    {
+      field: "mode",
+      headerName: "Mode",
+      flex: 0.8,
+      renderCell: (params) => (
+        <Chip
+          label={params.value.charAt(0).toUpperCase() + params.value.slice(1)}
+          size="small"
+          color={params.value === "cashed" ? "warning" : "default"}
+          variant="outlined"
+          sx={{ fontSize: 10, height: 20 }}
+        />
+      ),
+    },
     {
       field: "type", headerName: "Type", flex: 1,
       renderCell: (params) => (
@@ -276,9 +304,6 @@ export default function PersonLedger() {
       ),
     },
   ];
-
-  const currentBalance = personRows.length > 0 ? personRows[personRows.length - 1].balance : 0;
-  const pendingCount = personTransactions.filter((t) => t.status === "pending").length;
 
   const typeColor = (type: string): any => {
     if (["income", "advance", "settlement"].includes(type)) return "success";
@@ -422,6 +447,22 @@ export default function PersonLedger() {
               {pendingCount > 0 && (
                 <Chip label={`${pendingCount} pending`} size="small" color="warning" variant="outlined" sx={{ fontWeight: 500 }} />
               )}
+              {([
+                { value: "all", label: "All" },
+                { value: "cashed", label: "Cashed" },
+                { value: "regular", label: "Regular" },
+              ] as const).map((opt) => (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  size="small"
+                  clickable
+                  color={modeFilter === opt.value ? "primary" : "default"}
+                  variant={modeFilter === opt.value ? "filled" : "outlined"}
+                  onClick={() => setModeFilter(opt.value)}
+                  sx={{ fontWeight: 600 }}
+                />
+              ))}
             </Box>
 
             {/* Filter controls */}
@@ -480,6 +521,13 @@ export default function PersonLedger() {
                     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Typography variant="caption" color="text.secondary">{row.date}</Typography>
+                        <Chip
+                          label={row.mode.charAt(0).toUpperCase() + row.mode.slice(1)}
+                          size="small"
+                          color={row.mode === "cashed" ? "warning" : "default"}
+                          variant="outlined"
+                          sx={{ fontSize: 10, height: 18 }}
+                        />
                         {row.isSettlement ? (
                           <Chip label="Settlement" size="small" color="success" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
                         ) : (

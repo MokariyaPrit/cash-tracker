@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
@@ -32,6 +32,7 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
@@ -155,48 +156,63 @@ export default function CalendarDashboard() {
     summary.income + summary.advance - summary.expense +
     summary.settlement - summary.salary;
 
-  const summaryCards = [
+  const netBalance = balance - summary.pending;
+
+  const summaryCards: {
+    label: string;
+    value: number;
+    color: string;
+    icon: ReactNode;
+    hint?: string;
+  }[] = [
     {
       label: "Income",
       value: summary.income,
-      color: "success.main" as const,
+      color: "success.main",
       icon: <TrendingUpRoundedIcon fontSize="small" />,
     },
     {
       label: "Expense",
       value: summary.expense,
-      color: "error.main" as const,
+      color: "error.main",
       icon: <TrendingDownRoundedIcon fontSize="small" />,
     },
     {
       label: "Salary",
       value: summary.salary,
-      color: "error.main" as const,
+      color: "error.main",
       icon: <TrendingDownRoundedIcon fontSize="small" />,
     },
     {
       label: "Advance",
       value: summary.advance,
-      color: "info.main" as const,
+      color: "info.main",
       icon: <SwapHorizRoundedIcon fontSize="small" />,
     },
     {
       label: "Settled",
       value: summary.settlement,
-      color: "success.main" as const,
-      icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+      color: "success.main",
+      icon: <SwapHorizRoundedIcon fontSize="small" />,
     },
     {
       label: "Pending",
       value: summary.pending,
-      color: "text.secondary" as const,
+      color: "warning.main",
       icon: <ScheduleRoundedIcon fontSize="small" />,
     },
     {
       label: "Balance",
       value: balance,
-      color: balance >= 0 ? "primary.main" : ("error.main" as const),
+      color: balance >= 0 ? "primary.main" : "error.main",
       icon: <AccountBalanceRoundedIcon fontSize="small" />,
+    },
+    {
+      label: "Net Balance",
+      value: netBalance,
+      hint: "",
+      color: netBalance >= 0 ? "success.main" : "error.main",
+      icon: <AccountBalanceWalletRoundedIcon fontSize="small" />,
     },
   ];
 
@@ -262,7 +278,7 @@ export default function CalendarDashboard() {
       {/* ── Summary Cards ── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
-          <Grid size={{ xs: 6, sm: 4, md: 2 }} key={card.label}>
+          <Grid size={{ xs: 6, sm: 4, md: 3 }} key={card.label}>
             <Paper
               elevation={0}
               sx={{
@@ -288,6 +304,11 @@ export default function CalendarDashboard() {
               >
                 ₹{Number(card.value).toLocaleString()}
               </Typography>
+              {card.hint && (
+                <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25 }}>
+                  {card.hint}
+                </Typography>
+              )}
             </Paper>
           </Grid>
         ))}

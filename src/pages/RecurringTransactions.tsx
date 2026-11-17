@@ -161,6 +161,7 @@ export default function RecurringTransactions() {
           );
           return addTransaction({
             userId: user.uid, personId: t.personId,
+            mode: "regular",
             amount: t.amount, type: t.type,
             description: t.description || "",
             status: "pending", date: txDate,

@@ -38,10 +38,13 @@ import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
+import { resolveTransactionMode, type TransactionMode } from "../types/transaction";
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
 }
+
+type ModeFilter = "all" | TransactionMode;
 
 const TYPE_CONFIG: Record<string, { color: string; bgKey: string; icon: any }> = {
   income:     { color: "success", bgKey: "success", icon: TrendingUpRoundedIcon },
@@ -62,6 +65,7 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [persons, setPersons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -119,7 +123,12 @@ export default function Transactions() {
 
   const personMap = Object.fromEntries(persons.map((p) => [p.id, p.name]));
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
+  const filteredTransactions = transactions.filter((t) => {
+    if (modeFilter === "all") return true;
+    return resolveTransactionMode(t.mode) === modeFilter;
+  });
+
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     const aDate = a.date?.seconds ? new Date(a.date.seconds * 1000) : new Date(a.date);
     const bDate = b.date?.seconds ? new Date(b.date.seconds * 1000) : new Date(b.date);
     return bDate.getTime() - aDate.getTime();
@@ -134,6 +143,7 @@ export default function Transactions() {
           ? new Date(t.date.seconds * 1000).toLocaleDateString("en-GB")
           : "-",
         person: personMap[t.personId] || "-",
+        mode: resolveTransactionMode(t.mode),
         type: t.type,
         amount: t.amount,
         status: t.status,
@@ -160,6 +170,21 @@ export default function Transactions() {
   const columns: GridColDef[] = [
     { field: "date", headerName: "Date", flex: 1, minWidth: 110 },
     { field: "person", headerName: "Person", flex: 1, minWidth: 100 },
+    {
+      field: "mode",
+      headerName: "Mode",
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params) => (
+        <Chip
+          label={capitalize(params.value)}
+          size="small"
+          color={params.value === "cashed" ? "warning" : "default"}
+          variant="outlined"
+          sx={{ fontSize: 11, fontWeight: 600, height: 22 }}
+        />
+      ),
+    },
     {
       field: "type",
       headerName: "Type",
@@ -334,8 +359,15 @@ export default function Transactions() {
 
           <Divider sx={{ my: 0.75 }} />
 
-          {/* Row 2: Type + Status  */}
+          {/* Row 2: Mode + Type + Status  */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+            <Chip
+              label={capitalize(row.mode)}
+              size="small"
+              color={row.mode === "cashed" ? "warning" : "default"}
+              variant="outlined"
+              sx={{ fontSize: 10, height: 20, fontWeight: 600 }}
+            />
             <Chip
               label={capitalize(row.type)}
               size="small"
@@ -481,6 +513,25 @@ export default function Transactions() {
     >
       Add Transaction
     </Button>
+  </Stack>
+
+  {/* Mode filter */}
+  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+    {([
+      { value: "all", label: "All" },
+      { value: "cashed", label: "Cashed" },
+      { value: "regular", label: "Regular" },
+    ] as const).map((opt) => (
+      <Chip
+        key={opt.value}
+        label={opt.label}
+        clickable
+        color={modeFilter === opt.value ? "primary" : "default"}
+        variant={modeFilter === opt.value ? "filled" : "outlined"}
+        onClick={() => setModeFilter(opt.value)}
+        sx={{ fontWeight: 600 }}
+      />
+    ))}
   </Stack>
 </Stack>
       {/* ── Summary cards ── */}

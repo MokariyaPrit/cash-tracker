@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import {
+  Box,
+  Autocomplete,
+  createFilterOptions,
   TextField,
   MenuItem,
   Button,
   Checkbox,
   FormControlLabel,
-  Box,
   Typography,
   Paper,
   Stack,
@@ -22,7 +24,7 @@ import {
   updateTransaction,
 } from "../services/transactionService";
 
-import { getPersons } from "../services/personService";
+import { addPerson, getPersons } from "../services/personService";
 import { useAppSelector } from "../hooks/reduxHooks";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -34,6 +36,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import { useAlert } from "../contexts/AlertContext";
 
 const typeOptions = [
   { value: "expense", label: "Expense" },
@@ -42,17 +45,33 @@ const typeOptions = [
   { value: "advance", label: "Advance" },
 ];
 
+const modeOptions = [
+  { value: "cashed", label: "Cashed" },
+  { value: "regular", label: "Regular" },
+];
+
+type PersonOption = {
+  id?: string;
+  name: string;
+  inputValue?: string;
+};
+
+const filter = createFilterOptions<PersonOption>();
+
 export default function AddTransaction() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
+  const showAlert = useAlert();
   const user = useAppSelector((state) => state.auth.user);
 
-  const [persons, setPersons] = useState<any[]>([]);
-  const [personId, setPersonId] = useState(searchParams.get("personId") ?? "");
+  const [persons, setPersons] = useState<PersonOption[]>([]);
+  const [mode, setMode] = useState<"regular" | "cashed">("cashed");
+  const [selectedPerson, setSelectedPerson] = useState<PersonOption | null>(null);
+  const [personInput, setPersonInput] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState("expense");
+  const [type, setType] = useState("income");
   const [date, setDate] = useState<Dayjs>(dayjs());
   const [description, setDescription] = useState("");
   const [completed, setCompleted] = useState(false);
@@ -62,51 +81,96 @@ export default function AddTransaction() {
 
   useEffect(() => {
     if (!user) return;
-    loadPersons();
-    if (id) {
-      loadTransaction();
-    } else {
+    (async () => {
+      const data = (await getPersons(user.uid)) as PersonOption[];
+      setPersons(data);
+
+      const presetId = searchParams.get("personId");
+      if (presetId && !id) {
+        const match = data.find((p) => p.id === presetId);
+        if (match) {
+          setSelectedPerson(match);
+          setPersonInput(match.name);
+        }
+      }
+
+      if (id) {
+        const ref = doc(db, "transactions", id);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const tx: any = snap.data();
+          setMode(tx.mode === "cashed" ? "cashed" : "regular");
+          const match = data.find((p) => p.id === tx.personId);
+          if (match) {
+            setSelectedPerson(match);
+            setPersonInput(match.name);
+          }
+          setAmount(String(tx.amount ?? ""));
+          setType(tx.type ?? "income");
+          setDescription(tx.description ?? "");
+          setCompleted(tx.status === "completed");
+          if (tx.date?.seconds) {
+            setDate(dayjs(new Date(tx.date.seconds * 1000)));
+          }
+          if (tx.completedDate?.seconds) {
+            setCompletedDate(dayjs(new Date(tx.completedDate.seconds * 1000)));
+          }
+        }
+      }
       setLoading(false);
-    }
+    })();
   }, [user, id]);
 
   if (!user) return null;
 
-  const loadPersons = async () => {
-    const data = await getPersons(user.uid);
-    setPersons(data);
+  const findPersonByName = (name: string, list: PersonOption[] = persons) =>
+    list.find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  const createPerson = async (name: string): Promise<PersonOption> => {
+    const trimmed = name.trim();
+    const existing = findPersonByName(trimmed);
+    if (existing?.id) return existing;
+
+    const ref = await addPerson({
+      name: trimmed,
+      userId: user.uid,
+      createdAt: new Date(),
+    });
+    const created: PersonOption = { id: ref.id, name: trimmed };
+    setPersons((prev) => [...prev, created]);
+    return created;
   };
 
-  const loadTransaction = async () => {
-    if (!id) return;
-    const ref = doc(db, "transactions", id);
-    const snap = await getDoc(ref);
+  const resolvePersonId = async (): Promise<string | null> => {
+    if (selectedPerson?.id) return selectedPerson.id;
 
-    if (snap.exists()) {
-      const data: any = snap.data();
-      setPersonId(data.personId ?? "");
-      setAmount(String(data.amount ?? ""));
-      setType(data.type ?? "expense");
-      setDescription(data.description ?? "");
-      setCompleted(data.status === "completed");
-      if (data.date?.seconds) {
-        setDate(dayjs(new Date(data.date.seconds * 1000)));
-      }
-      if (data.completedDate?.seconds) {
-        setCompletedDate(dayjs(new Date(data.completedDate.seconds * 1000)));
-      }
-    }
-    setLoading(false);
+    const nameFromSelection = selectedPerson?.inputValue?.trim()
+      || selectedPerson?.name?.trim()
+      || personInput.trim();
+
+    if (!nameFromSelection) return null;
+
+    const existing = findPersonByName(nameFromSelection);
+    if (existing?.id) return existing.id;
+
+    const created = await createPerson(nameFromSelection);
+    setSelectedPerson(created);
+    setPersonInput(created.name);
+    return created.id ?? null;
   };
 
   const handleSave = async () => {
-    if (!user || !personId || !amount.trim()) return;
+    if (!user || !amount.trim()) return;
 
     setSaving(true);
     try {
+      const personId = await resolvePersonId();
+      if (!personId) return;
+
       const payload: any = {
         userId: user.uid,
         personId,
+        mode,
         amount: Number(amount),
         type,
         description: description.trim(),
@@ -117,16 +181,31 @@ export default function AddTransaction() {
 
       if (id) {
         await updateTransaction(id, payload);
+        showAlert("Transaction updated", "success");
+        navigate("/transactions");
       } else {
         await addTransaction({ ...payload, createdAt: new Date() });
+        showAlert("Transaction saved", "success");
+        // Stay on /transactions/add — reset form for next entry
+        setAmount("");
+        setType("income");
+        setDescription("");
+        setCompleted(false);
+        setCompletedDate(dayjs());
+        setDate(dayjs());
+        // Keep mode + person for fast repeat entries
       }
-      navigate(-1);
     } finally {
       setSaving(false);
     }
   };
 
-  const canSave = personId && amount.trim() && !isNaN(Number(amount));
+  const hasPerson =
+    Boolean(selectedPerson?.id) ||
+    Boolean(selectedPerson?.inputValue?.trim()) ||
+    Boolean(personInput.trim());
+
+  const canSave = hasPerson && amount.trim() && !isNaN(Number(amount));
 
   const inputSx = {
     "& .MuiOutlinedInput-root": {
@@ -146,15 +225,32 @@ export default function AddTransaction() {
   return (
     <Box sx={{ maxWidth: 560, mx: "auto", px: { xs: 2, sm: 3 }, py: 3 }}>
       {/* Page Title */}
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-        {id ? (
-          <EditRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
-        ) : (
-          <ReceiptLongRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
-        )}
-        <Typography variant="h4" fontWeight={700} color="text.primary">
-          {id ? "Edit transaction" : "Add transaction"}
-        </Typography>
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        spacing={1.5}
+        sx={{ mb: 1 }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          {id ? (
+            <EditRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          ) : (
+            <ReceiptLongRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          )}
+          <Typography variant="h4" fontWeight={700} color="text.primary">
+            {id ? "Edit transaction" : "Add transaction"}
+          </Typography>
+        </Stack>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ReceiptLongRoundedIcon />}
+          onClick={() => navigate("/transactions")}
+          sx={{ borderRadius: 2, fontWeight: 600, flexShrink: 0 }}
+        >
+          Transactions
+        </Button>
       </Stack>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         {id
@@ -175,27 +271,103 @@ export default function AddTransaction() {
         }}
       >
         <Stack spacing={2.5}>
-          {/* Person */}
+          {/* Mode — first */}
           <TextField
             select
-            label="Person"
+            label="Mode"
             fullWidth
             size="small"
-            value={personId}
-            onChange={(e) => setPersonId(e.target.value)}
+            value={mode}
+            onChange={(e) => setMode(e.target.value as "regular" | "cashed")}
             sx={inputSx}
-            SelectProps={{ displayEmpty: true }}
-            InputLabelProps={{ shrink: true }}
+            helperText="Cashed = cash customer entries; Regular = other cashflow"
           >
-            <MenuItem value="">
-              <em>Select person</em>
-            </MenuItem>
-            {persons.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}
+            {modeOptions.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
               </MenuItem>
             ))}
           </TextField>
+
+          {/* Person — search existing or create new */}
+          <Autocomplete
+            freeSolo
+            selectOnFocus
+            clearOnBlur
+            handleHomeEndKeys
+            options={persons}
+            value={selectedPerson}
+            inputValue={personInput}
+            onInputChange={(_, value) => setPersonInput(value)}
+            filterOptions={(options, params) => {
+              const filtered = filter(options, params);
+              const inputValue = params.inputValue.trim();
+              if (!inputValue) return filtered;
+
+              const exists = options.some(
+                (opt) => opt.name.trim().toLowerCase() === inputValue.toLowerCase()
+              );
+              if (!exists) {
+                filtered.push({
+                  inputValue,
+                  name: `Add "${inputValue}"`,
+                });
+              }
+              return filtered;
+            }}
+            getOptionLabel={(option) => {
+              if (typeof option === "string") return option;
+              if (option.inputValue) return option.inputValue;
+              return option.name;
+            }}
+            isOptionEqualToValue={(option, value) =>
+              Boolean(option.id) && option.id === value.id
+            }
+            renderOption={(props, option) => (
+              <li {...props} key={option.id ?? `new-${option.inputValue ?? option.name}`}>
+                {option.name}
+              </li>
+            )}
+            onChange={async (_, newValue) => {
+              if (typeof newValue === "string") {
+                const trimmed = newValue.trim();
+                if (!trimmed) {
+                  setSelectedPerson(null);
+                  return;
+                }
+                const existing = findPersonByName(trimmed);
+                if (existing) {
+                  setSelectedPerson(existing);
+                  setPersonInput(existing.name);
+                  return;
+                }
+                const created = await createPerson(trimmed);
+                setSelectedPerson(created);
+                setPersonInput(created.name);
+                return;
+              }
+
+              if (newValue?.inputValue) {
+                const created = await createPerson(newValue.inputValue);
+                setSelectedPerson(created);
+                setPersonInput(created.name);
+                return;
+              }
+
+              setSelectedPerson(newValue);
+              setPersonInput(newValue?.name ?? "");
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Person"
+                size="small"
+                placeholder="Search or type a new name"
+                helperText="Pick an existing person, or add a new one"
+                sx={inputSx}
+              />
+            )}
+          />
 
           {/* Amount */}
           <TextField
@@ -348,7 +520,7 @@ export default function AddTransaction() {
             <Button
               variant="outlined"
               color="inherit"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/transactions")}
               disabled={saving}
               sx={{ borderRadius: 2 }}
             >

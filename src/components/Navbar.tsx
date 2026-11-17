@@ -18,6 +18,7 @@ import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 const navItems = [
   {
@@ -35,11 +36,15 @@ const navItems = [
     label: "Transactions",
     icon: <ReceiptLongRoundedIcon fontSize="small" />,
   },
-  //   { path: "/calendar", label: "Calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
-    {
+  {
+    path: "/transactions/add",
+    label: "Add Transaction",
+    icon: <AddRoundedIcon fontSize="small" />,
+  },
+  {
     path: "/recurring",
     label: "Recurring",
-    icon: <RepeatRoundedIcon  fontSize="small" />,
+    icon: <RepeatRoundedIcon fontSize="small" />,
   },
 ];
 
@@ -102,9 +107,16 @@ export default function Navbar() {
 
         <Box sx={{ flexGrow: 1, display: "flex", gap: 0.5 }}>
           {navItems.map((item) => {
-            const isActive =
-              location.pathname === item.path ||
-              (item.path !== "/" && location.pathname.startsWith(item.path));
+            // Prefer the longest matching nav path so /transactions/add
+            // highlights "Add Transaction", not "Transactions".
+            const matching = navItems
+              .filter(
+                (n) =>
+                  location.pathname === n.path ||
+                  (n.path !== "/" && location.pathname.startsWith(`${n.path}/`))
+              )
+              .sort((a, b) => b.path.length - a.path.length);
+            const isActive = matching[0]?.path === item.path;
             return (
               <Button
                 key={item.path}
